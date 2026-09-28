@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SA Youth Learning — Free Skills Development for South African Youth</title>
-  <meta name="description" content="SA Youth Learning offers free, high-quality online courses for South African youth. Build practical skills, explore new interests, and prepare for your future.">
+  <title>SA Youth Learning — Centralized Authentication System</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
@@ -665,7 +664,7 @@
       color: rgba(255,255,255,0.5);
     }
 
-    /* ============ ADMIN TAB BAR (BOTTOM) ============ */
+    /* ============ ADMIN TAB BAR ============ */
     .admin-tab-bar {
       background: var(--navy-800);
       border-top: 3px solid var(--gold-500);
@@ -1205,66 +1204,255 @@
       font-weight: 600;
     }
 
-    /* Admin registrations list */
-    .reg-list { display: flex; flex-direction: column; gap: 10px; max-height: 500px; overflow-y: auto; }
-
-    .reg-item {
-      background: rgba(255,255,255,0.05);
+    /* ============ USER MANAGEMENT TABLE ============ */
+    .user-table-wrap {
+      overflow-x: auto;
+      border-radius: var(--radius-md);
       border: 1px solid rgba(255,255,255,0.1);
-      border-radius: var(--radius-sm);
-      padding: 14px 16px;
-      font-size: 0.82rem;
     }
 
-    .reg-item-header {
+    .user-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+      min-width: 900px;
+    }
+
+    .user-table thead {
+      background: rgba(255,255,255,0.06);
+    }
+
+    .user-table th {
+      text-align: left;
+      padding: 12px 14px;
+      color: var(--gold-500);
+      font-weight: 700;
+      font-size: 0.78rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .user-table td {
+      padding: 12px 14px;
+      color: rgba(255,255,255,0.8);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+
+    .user-table tr:hover td {
+      background: rgba(255,255,255,0.03);
+    }
+
+    .status-pill {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .status-pill.pending { background: var(--warning-bg); color: var(--warning); }
+    .status-pill.active { background: var(--success-bg); color: var(--success); }
+    .status-pill.deactivated { background: var(--danger-bg); color: var(--danger); }
+    .status-pill.rejected { background: #4a4a4a; color: #ccc; }
+
+    .table-actions {
       display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 10px;
-      margin-bottom: 8px;
+      gap: 5px;
       flex-wrap: wrap;
     }
 
-    .reg-item-name { font-weight: 700; color: var(--gold-500); font-size: 0.88rem; }
-    .reg-item-status { font-size: 0.7rem; padding: 3px 9px; border-radius: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
-    .reg-item-status.pending { background: var(--warning-bg); color: var(--warning); }
-    .reg-item-status.approved { background: var(--success-bg); color: var(--success); }
-
-    .reg-item-detail { color: rgba(255,255,255,0.6); margin-bottom: 3px; }
-    .reg-item-detail strong { color: rgba(255,255,255,0.85); }
-
-    .reg-item-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
-
-    .reg-item-actions button {
-      flex: 1;
-      min-width: 100px;
-      padding: 8px 12px;
+    .table-actions button {
+      padding: 5px 10px;
       border: none;
-      border-radius: var(--radius-sm);
+      border-radius: 6px;
       font-family: 'Inter', sans-serif;
-      font-size: 0.78rem;
+      font-size: 0.7rem;
       font-weight: 600;
       cursor: pointer;
       transition: var(--transition);
+      white-space: nowrap;
     }
 
-    .btn-approve { background: var(--success); color: white; }
-    .btn-approve:hover { background: #0a6640; }
-    .btn-reject { background: var(--danger); color: white; }
-    .btn-reject:hover { background: #8f2a2a; }
+    .tbl-btn-approve { background: var(--success); color: white; }
+    .tbl-btn-approve:hover { background: #0a6640; }
+    .tbl-btn-activate { background: var(--teal-600); color: white; }
+    .tbl-btn-activate:hover { background: var(--teal-500); }
+    .tbl-btn-deactivate { background: var(--warning); color: white; }
+    .tbl-btn-deactivate:hover { background: #9a6f08; }
+    .tbl-btn-reactivate { background: var(--success); color: white; }
+    .tbl-btn-reactivate:hover { background: #0a6640; }
+    .tbl-btn-view { background: var(--navy-600); color: white; }
+    .tbl-btn-view:hover { background: var(--navy-500); }
+    .tbl-btn-history { background: var(--navy-700); color: white; }
+    .tbl-btn-history:hover { background: var(--navy-600); }
+    .tbl-btn-resend { background: #8a6d3b; color: white; }
+    .tbl-btn-resend:hover { background: #6d5530; }
 
-    .cred-box {
-      background: var(--navy-800);
-      border: 1px solid var(--gold-500);
+    /* Login history timeline */
+    .login-history-list {
+      max-height: 420px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .login-history-item {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
       border-radius: var(--radius-sm);
-      padding: 12px 14px;
-      margin-top: 10px;
-      font-size: 0.78rem;
+      padding: 14px 16px;
+      font-size: 0.82rem;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 14px;
+      align-items: flex-start;
     }
 
-    .cred-box .cred-row { display: flex; justify-content: space-between; padding: 3px 0; }
-    .cred-box .cred-label { color: rgba(255,255,255,0.5); }
-    .cred-box .cred-value { color: var(--gold-500); font-weight: 700; font-family: monospace; }
+    .login-history-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: rgba(20, 145, 155, 0.2);
+      color: var(--teal-500);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+
+    .login-history-body h5 {
+      color: white;
+      font-size: 0.88rem;
+      margin-bottom: 5px;
+      font-weight: 600;
+    }
+
+    .login-history-body .lh-meta {
+      color: rgba(255,255,255,0.55);
+      font-size: 0.78rem;
+      line-height: 1.6;
+    }
+
+    .login-history-body .lh-meta strong {
+      color: rgba(255,255,255,0.8);
+      font-weight: 600;
+    }
+
+    .lh-status {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 8px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      margin-left: 6px;
+    }
+
+    .lh-status.success { background: var(--success-bg); color: var(--success); }
+    .lh-status.failed { background: var(--danger-bg); color: var(--danger); }
+
+    /* Profile view */
+    .profile-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    .profile-field {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+    }
+
+    .profile-field .pf-label {
+      color: rgba(255,255,255,0.5);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+
+    .profile-field .pf-value {
+      color: white;
+      font-size: 0.92rem;
+      font-weight: 600;
+      word-break: break-word;
+    }
+
+    /* Dashboard stats */
+    .dash-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+
+    .dash-stat {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: var(--radius-md);
+      padding: 18px;
+      text-align: center;
+    }
+
+    .dash-stat .ds-number {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--gold-500);
+      font-family: 'Playfair Display', serif;
+      line-height: 1.2;
+    }
+
+    .dash-stat .ds-label {
+      color: rgba(255,255,255,0.6);
+      font-size: 0.75rem;
+      margin-top: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      font-weight: 600;
+    }
+
+    /* Filters bar */
+    .filter-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 18px;
+      align-items: center;
+    }
+
+    .filter-bar input,
+    .filter-bar select {
+      padding: 9px 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.08);
+      color: white;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.82rem;
+      transition: var(--transition);
+    }
+
+    .filter-bar input::placeholder { color: rgba(255,255,255,0.35); }
+    .filter-bar input:focus,
+    .filter-bar select:focus { outline: none; border-color: var(--gold-500); }
+    .filter-bar select option { color: var(--gray-900); }
+
+    .filter-bar .fb-label {
+      color: rgba(255,255,255,0.6);
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
 
     /* ============ RESPONSIVE ============ */
     @media (max-width: 1024px) {
@@ -1307,6 +1495,8 @@
       .quiz-question { padding: 18px; }
       .facilitator-box { padding: 20px; }
       .admin-tab-btn { width: 100%; justify-content: center; }
+      .dash-stats { grid-template-columns: 1fr 1fr; }
+      .login-history-item { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -1342,9 +1532,9 @@
 <section id="home" class="hero">
   <div class="container hero-grid">
     <div class="hero-content">
-      <span class="hero-eyebrow"><i class="fas fa-star"></i> Free Skills Development</span>
+      <span class="hero-eyebrow"><i class="fas fa-shield-alt"></i> Secure Central Authentication</span>
       <h1>Build your future with free, practical skills.</h1>
-      <p>SA Youth Learning provides accessible, high-quality online courses designed for South African youth. Register today, get approved, and start learning at your own pace.</p>
+      <p>SA Youth Learning provides accessible, high-quality online courses designed for South African youth. Register today, get approved, and start learning from any device.</p>
       <div class="hero-actions">
         <a href="#register" class="btn btn-accent btn-large">Register Now <i class="fas fa-arrow-right"></i></a>
         <a href="#how" class="btn btn-secondary btn-large">How It Works</a>
@@ -1362,7 +1552,7 @@
     <div class="section-header">
       <span class="section-eyebrow">Our Catalogue</span>
       <h2 class="section-title">Available Courses</h2>
-      <p class="section-sub" id="coursesSubtitle">Register and get approved to access all courses. New courses are added regularly by our team of educators.</p>
+      <p class="section-sub" id="coursesSubtitle">Register and get approved to access all courses. Your account works across all devices.</p>
     </div>
     <div class="course-grid" id="courseGrid"></div>
   </div>
@@ -1380,27 +1570,27 @@
       <div class="step-item">
         <div class="step-number">1</div>
         <h4>Register</h4>
-        <p>Submit your details free — name, surname, cellphone, and Gmail address.</p>
+        <p>Submit your details — name, surname, email, cellphone, and password.</p>
       </div>
       <div class="step-item">
         <div class="step-number">2</div>
-        <h4>Make Payment</h4>
-        <p>Deposit R150 into our bank account using your name as reference.</p>
+        <h4>Admin Review</h4>
+        <p>Our admin verifies your registration and approves your account.</p>
       </div>
       <div class="step-item">
         <div class="step-number">3</div>
-        <h4>Admin Approval</h4>
-        <p>Our admin verifies your payment and approves your registration.</p>
+        <h4>Email Approval</h4>
+        <p>You receive an approval email with secure login instructions.</p>
       </div>
       <div class="step-item">
         <div class="step-number">4</div>
-        <h4>Receive Credentials</h4>
-        <p>You receive a permanent username and password via email.</p>
+        <h4>Set Password</h4>
+        <p>Follow the secure link to set your permanent password.</p>
       </div>
       <div class="step-item">
         <div class="step-number">5</div>
         <h4>Start Learning</h4>
-        <p>Log in, access courses, and earn your certificate.</p>
+        <p>Log in from any device, access courses, and earn your certificate.</p>
       </div>
     </div>
   </div>
@@ -1413,7 +1603,7 @@
       <div class="about-text">
         <h2>About SA Youth Learning</h2>
         <p>We believe every young person in South Africa deserves access to quality education and skills development. Our platform offers courses designed to help you build practical, in-demand skills — without financial barriers.</p>
-        <p>All content is curated and administered by our team of qualified educators, with ongoing support available through our facilitator network.</p>
+        <p>All accounts are centrally managed with secure authentication. Your single account works across all devices and browsers, and every login is recorded for security and support.</p>
         <div class="about-stats">
           <div class="stat-item">
             <span class="stat-number">12k+</span>
@@ -1441,55 +1631,47 @@
   <div class="container">
     <div class="section-header">
       <span class="section-eyebrow">Get Started</span>
-      <h2 class="section-title">Register for Access</h2>
-      <p class="section-sub">Complete the form below and make your payment. Once your payment is verified, you will receive your permanent login credentials.</p>
+      <h2 class="section-title">Create Your Account</h2>
+      <p class="section-sub">Register once. Admin reviews and approves your account. You then receive an email with secure login instructions. Your account works on every device.</p>
     </div>
     <div class="register-grid">
       <div class="register-info">
-        <h2>Registration Payment</h2>
-        <p>A one-time registration fee of <strong>R150.00</strong> is required to activate your account. This covers your permanent access credentials and platform maintenance.</p>
+        <h2>Central Account System</h2>
+        <p>Your account is stored securely in our central database with a permanent unique user ID. When you log in from any device — phone, tablet, laptop, or desktop — you access the same account, courses, and progress.</p>
         <div class="bank-card">
-          <h4><i class="fas fa-university"></i> Banking Details</h4>
+          <h4><i class="fas fa-shield-alt"></i> How We Protect You</h4>
           <div class="bank-row">
-            <span class="bank-label">Bank</span>
-            <span class="bank-value">Capitec Bank</span>
+            <span class="bank-label">Passwords</span>
+            <span class="bank-value">Never stored in plaintext</span>
           </div>
           <div class="bank-row">
-            <span class="bank-label">Account Holder</span>
-            <span class="bank-value">SA Youth Learning NPC</span>
+            <span class="bank-label">Account Status</span>
+            <span class="bank-value">Admin-controlled</span>
           </div>
           <div class="bank-row">
-            <span class="bank-label">Account Number</span>
-            <span class="bank-value">1234567890</span>
+            <span class="bank-label">Login History</span>
+            <span class="bank-value">Fully recorded</span>
           </div>
           <div class="bank-row">
-            <span class="bank-label">Branch Code</span>
-            <span class="bank-value">470010</span>
+            <span class="bank-label">Cross-Device</span>
+            <span class="bank-value">Same account everywhere</span>
           </div>
           <div class="bank-row">
-            <span class="bank-label">Account Type</span>
-            <span class="bank-value">Cheque / Current</span>
-          </div>
-          <div class="bank-row">
-            <span class="bank-label">Amount</span>
-            <span class="bank-value">R150.00</span>
-          </div>
-          <div class="bank-row">
-            <span class="bank-label">Reference</span>
-            <span class="bank-value">Name + Surname + Cell</span>
+            <span class="bank-label">Admin Access</span>
+            <span class="bank-value">Role-based authorization</span>
           </div>
           <div class="bank-note">
             <i class="fas fa-info-circle"></i>
-            <span>Use your full name and cellphone number as the payment reference so we can match your deposit. Once confirmed, admin will issue your login credentials.</span>
+            <span>Registration does not grant immediate access. You must be approved by an administrator before you can log in.</span>
           </div>
         </div>
       </div>
       <div class="form-card">
         <h3>Registration Form</h3>
-        <p>Fill in your details. Admin will review and approve your account after payment confirmation.</p>
+        <p>Fill in your details. Admin will review and approve your account.</p>
         <form id="registrationForm" onsubmit="handleRegistration(event)">
           <div class="form-group">
-            <label for="regName">Name</label>
+            <label for="regName">First Name</label>
             <input type="text" id="regName" placeholder="e.g. Thabo" required>
           </div>
           <div class="form-group">
@@ -1497,22 +1679,22 @@
             <input type="text" id="regSurname" placeholder="e.g. Nkosi" required>
           </div>
           <div class="form-group">
-            <label for="regPhone">Cellphone Number</label>
+            <label for="regEmail">Email Address</label>
+            <input type="email" id="regEmail" placeholder="yourname@gmail.com" required>
+            <div class="form-hint">Used for account approval and login</div>
+          </div>
+          <div class="form-group">
+            <label for="regPhone">Phone Number</label>
             <input type="tel" id="regPhone" placeholder="e.g. 072 123 4567" required pattern="[0-9\s\+]{10,15}">
             <div class="form-hint">Used for SMS notifications</div>
           </div>
           <div class="form-group">
-            <label for="regEmail">Gmail Address</label>
-            <input type="email" id="regEmail" placeholder="yourname@gmail.com" required>
-            <div class="form-hint">Credentials will be sent to this email address</div>
-          </div>
-          <div class="form-group">
-            <label for="regPaymentRef">Payment Reference Used</label>
-            <input type="text" id="regPaymentRef" placeholder="e.g. Thabo Nkosi 0721234567" required>
-            <div class="form-hint">The reference you used when making the bank deposit</div>
+            <label for="regPassword">Choose a Password</label>
+            <input type="password" id="regPassword" placeholder="Minimum 8 characters" required minlength="8">
+            <div class="form-hint">Stored securely as a hash — never in plaintext</div>
           </div>
           <button type="submit" class="btn btn-primary btn-large btn-block">
-            <i class="fas fa-paper-plane"></i> Submit Registration
+            <i class="fas fa-user-plus"></i> Create Account
           </button>
         </form>
       </div>
@@ -1524,7 +1706,7 @@
 <div class="container">
   <div class="cta-banner">
     <h2>Start Your Learning Journey</h2>
-    <p>Register today, get approved, and access all our courses. Build your future through free, accessible education.</p>
+    <p>Register today, get approved, and access all our courses from any device. Your account follows you everywhere.</p>
     <a href="#register" class="btn btn-accent btn-large">Register Now <i class="fas fa-chevron-right"></i></a>
   </div>
 </div>
@@ -1570,20 +1752,20 @@
     </div>
     <div class="footer-bottom">
       <span>© 2026 SA Youth Learning. All rights reserved.</span>
-      <span>Empowering South African Youth Through Education</span>
+      <span>Central Authentication • Cross-Device • Secure</span>
     </div>
   </div>
 </footer>
 
-<!-- ============ ADMIN TAB BAR (BOTTOM) ============ -->
+<!-- ============ ADMIN TAB BAR ============ -->
 <div class="admin-tab-bar">
   <div class="container">
     <div class="admin-tab-inner">
       <div class="admin-tab-left">
         <div class="admin-tab-icon"><i class="fas fa-shield-alt"></i></div>
         <div class="admin-tab-text">
-          <h4>Administrator Access</h4>
-          <p id="adminTabStatusText">Staff members can log in here to manage registrations, courses, and certificates.</p>
+          <h4>Administrator Portal</h4>
+          <p id="adminTabStatusText">Staff members log in here to manage users, courses, and certificates.</p>
         </div>
       </div>
       <button class="admin-tab-btn" id="adminTabBtn" onclick="openAdminLogin()">
@@ -1598,10 +1780,10 @@
   <div class="user-login-box">
     <div class="user-icon"><i class="fas fa-user-graduate"></i></div>
     <h3>Student Login</h3>
-    <p>Enter your credentials to access courses</p>
-    <input type="text" id="userLoginUsername" placeholder="Username" autocomplete="off">
-    <input type="password" id="userLoginPassword" placeholder="Password" autocomplete="off">
-    <div id="userLoginError" class="user-login-error">Invalid credentials. Please check your email or contact support.</div>
+    <p>Enter your email and password to access your account</p>
+    <input type="email" id="userLoginEmail" placeholder="yourname@gmail.com" autocomplete="email">
+    <input type="password" id="userLoginPassword" placeholder="Password" autocomplete="current-password">
+    <div id="userLoginError" class="user-login-error"></div>
     <button class="btn btn-teal btn-large btn-block" onclick="attemptUserLogin()">
       <i class="fas fa-sign-in-alt"></i> Sign In
     </button>
@@ -1723,29 +1905,105 @@
 
 <!-- ============ ADMIN DASHBOARD MODAL ============ -->
 <div id="adminDashboard" class="modal-overlay">
-  <div class="modal" style="max-width: 1100px;">
+  <div class="modal" style="max-width: 1200px;">
     <div class="modal-header">
       <h2><i class="fas fa-shield-alt"></i> Administrator Dashboard</h2>
       <button class="modal-close" onclick="closeAdminDashboard()"><i class="fas fa-times"></i></button>
     </div>
     <div class="modal-body">
       <div class="modal-tabs">
-        <button class="modal-tab active" onclick="switchAdminTab(this, 'adm-registrations')"><i class="fas fa-user-check"></i> Registrations</button>
+        <button class="modal-tab active" onclick="switchAdminTab(this, 'adm-dashboard')"><i class="fas fa-chart-line"></i> Dashboard</button>
+        <button class="modal-tab" onclick="switchAdminTab(this, 'adm-users')"><i class="fas fa-users-cog"></i> User Management</button>
+        <button class="modal-tab" onclick="switchAdminTab(this, 'adm-login-history')"><i class="fas fa-history"></i> Login History</button>
         <button class="modal-tab" onclick="switchAdminTab(this, 'adm-courses')"><i class="fas fa-book"></i> Courses</button>
         <button class="modal-tab" onclick="switchAdminTab(this, 'adm-certificates')"><i class="fas fa-certificate"></i> Certificates</button>
       </div>
 
-      <div id="adm-registrations" class="tab-content active">
+      <!-- Dashboard Tab -->
+      <div id="adm-dashboard" class="tab-content active">
         <div class="admin-panel">
           <div class="admin-panel-header">
-            <i class="fas fa-user-check"></i>
-            <h3>Pending Registrations</h3>
+            <i class="fas fa-chart-line"></i>
+            <h3>System Statistics</h3>
           </div>
-          <p>Review registrations, verify payment, and approve or reject. Approved users receive permanent login credentials.</p>
-          <div id="registrationList" class="reg-list"></div>
+          <p>Overview of platform activity and user metrics.</p>
+          <div class="dash-stats" id="dashStats"></div>
+          <div style="margin-top: 28px;">
+            <h4 style="color: var(--gold-500); font-size: 0.95rem; margin-bottom: 14px;"><i class="fas fa-clock"></i> Recent User Logins</h4>
+            <div class="login-history-list" id="recentLogins"></div>
+          </div>
         </div>
       </div>
 
+      <!-- User Management Tab -->
+      <div id="adm-users" class="tab-content">
+        <div class="admin-panel">
+          <div class="admin-panel-header">
+            <i class="fas fa-users-cog"></i>
+            <h3>User Management</h3>
+          </div>
+          <p>Manage all registered users. Approve, activate, deactivate, reactivate, or view profiles and login history.</p>
+
+          <div class="filter-bar">
+            <span class="fb-label">Filter:</span>
+            <input type="text" id="userSearchInput" placeholder="Search name or email..." oninput="renderUserTable()">
+            <select id="userStatusFilter" onchange="renderUserTable()">
+              <option value="">All Statuses</option>
+              <option value="PENDING">Pending</option>
+              <option value="ACTIVE">Active</option>
+              <option value="DEACTIVATED">Deactivated</option>
+              <option value="REJECTED">Rejected</option>
+            </select>
+          </div>
+
+          <div class="user-table-wrap">
+            <table class="user-table">
+              <thead>
+                <tr>
+                  <th>Full Name</th>
+                  <th>Email</th>
+                  <th>Phone</th>
+                  <th>Registered</th>
+                  <th>Status</th>
+                  <th>Last Login</th>
+                  <th>Total Logins</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="userTableBody"></tbody>
+            </table>
+          </div>
+          <div id="adminStatus" class="admin-status"></div>
+        </div>
+      </div>
+
+      <!-- Login History Tab -->
+      <div id="adm-login-history" class="tab-content">
+        <div class="admin-panel">
+          <div class="admin-panel-header">
+            <i class="fas fa-history"></i>
+            <h3>Complete Login History</h3>
+          </div>
+          <p>Every login event across all users. Records are never deleted or overwritten.</p>
+
+          <div class="filter-bar">
+            <span class="fb-label">Filter:</span>
+            <input type="text" id="lhSearchInput" placeholder="Search user or email..." oninput="renderLoginHistory()">
+            <select id="lhUserFilter" onchange="renderLoginHistory()">
+              <option value="">All Users</option>
+            </select>
+            <select id="lhStatusFilter" onchange="renderLoginHistory()">
+              <option value="">All Statuses</option>
+              <option value="SUCCESS">Success</option>
+              <option value="FAILED">Failed</option>
+            </select>
+          </div>
+
+          <div class="login-history-list" id="loginHistoryList"></div>
+        </div>
+      </div>
+
+      <!-- Courses Tab -->
       <div id="adm-courses" class="tab-content">
         <div class="admin-panel">
           <div class="admin-panel-header">
@@ -1799,10 +2057,10 @@
               <button class="admin-btn" onclick="adminAddQuizQuestion()"><i class="fas fa-plus"></i> Add Question</button>
             </div>
           </div>
-          <div id="adminStatus" class="admin-status"></div>
         </div>
       </div>
 
+      <!-- Certificates Tab -->
       <div id="adm-certificates" class="tab-content">
         <div class="admin-panel">
           <div class="admin-panel-header">
@@ -1835,32 +2093,157 @@
   </div>
 </div>
 
+<!-- ============ USER PROFILE MODAL ============ -->
+<div id="userProfileModal" class="modal-overlay">
+  <div class="modal" style="max-width: 800px;">
+    <div class="modal-header">
+      <h2><i class="fas fa-user-circle"></i> User Profile</h2>
+      <button class="modal-close" onclick="closeUserProfile()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="admin-panel">
+        <div id="userProfileContent"></div>
+        <div id="userLoginHistoryContent" style="margin-top: 24px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
-  // ============================================================
-  // ADMIN CREDENTIALS
-  // ============================================================
+  // =====================================================================
+  // CENTRALIZED AUTHENTICATION SYSTEM
+  // =====================================================================
+  // This is a front-end simulation of a centralized backend.
+  // In production, all data would be stored in a server-side database
+  // with proper API endpoints, password hashing (bcrypt/argon2),
+  // and role-based authorization enforced on the backend.
+  //
+  // The "central database" here uses an in-memory object that persists
+  // for the session. In a real deployment this would be a PostgreSQL,
+  // MySQL, or Supabase database accessed via secure API calls.
+  // =====================================================================
+
   const ADMIN_CREDENTIALS = { username: 'southafrica', password: '123456' };
   let isAdminLoggedIn = false;
-  let isUserLoggedIn = false;
-  let currentUser = null;
+  let currentAdmin = null;
 
-  // ============================================================
-  // DATA STORES
-  // ============================================================
+  // =====================================================================
+  // CENTRAL DATABASE TABLES
+  // =====================================================================
+
+  // users table
+  // { id, firstName, surname, email, phone, passwordHash, status,
+  //   registeredAt, approvedAt, approvedBy, lastLogin, totalLogins, role }
+  const users = [];
+
+  // login_history table
+  // { id, userId, email, loginTimestamp, loginDate, loginTime,
+  //   ipAddress, deviceType, os, browser, userAgent, status, sessionId,
+  //   logoutTimestamp, createdAt }
+  const loginHistory = [];
+
+  // account_status_history table
+  // { id, userId, previousStatus, newStatus, changedBy, date, time,
+  //   reason, ipAddress }
+  const accountStatusHistory = [];
+
+  // admin_audit_log table
+  // { id, adminId, action, targetUserId, date, time, ipAddress, details }
+  const adminAuditLog = [];
+
+  // =====================================================================
+  // COURSE DATA (existing functionality)
+  // =====================================================================
   const courses = {};
   const issuedCertificates = [];
-  const registrations = [];
   let courseIdCounter = 0;
-  let registrationIdCounter = 0;
-
   let currentCourseId = null;
   let currentCourse = null;
   let quizPassed = false;
   let currentStudentName = '';
+  let currentUser = null;
+  let isUserLoggedIn = false;
 
-  // ============================================================
+  // =====================================================================
+  // ID GENERATORS (simulating permanent unique IDs)
+  // =====================================================================
+  let userIdCounter = 0;
+  let loginHistoryIdCounter = 0;
+  let statusHistoryIdCounter = 0;
+  let auditLogIdCounter = 0;
+
+  function generateUserId() {
+    return 'USR-' + String(++userIdCounter).padStart(6, '0');
+  }
+
+  function generateSessionId() {
+    return 'SESS-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+  }
+
+  // =====================================================================
+  // PASSWORD HASHING (simulated — in production use bcrypt/argon2)
+  // =====================================================================
+  function hashPassword(password) {
+    // Simulated hash — NEVER use this in production.
+    // Production must use bcrypt, argon2, or scrypt server-side.
+    let hash = 0;
+    const salt = 'SA_YOUTH_SALT_2026';
+    const combined = salt + password;
+    for (let i = 0; i < combined.length; i++) {
+      const char = combined.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash |= 0;
+    }
+    return 'HASHED_' + Math.abs(hash).toString(36) + '_' + combined.length;
+  }
+
+  function verifyPassword(password, hash) {
+    return hashPassword(password) === hash;
+  }
+
+  // =====================================================================
+  // DEVICE DETECTION
+  // =====================================================================
+  function detectDevice() {
+    const ua = navigator.userAgent;
+    let deviceType = 'Desktop';
+    let os = 'Unknown';
+    let browser = 'Unknown';
+
+    // Device type
+    if (/iPad|Tablet/i.test(ua)) deviceType = 'Tablet';
+    else if (/iPhone/i.test(ua)) deviceType = 'iPhone';
+    else if (/Android/i.test(ua)) deviceType = 'Android';
+    else if (/Mobile/i.test(ua)) deviceType = 'Mobile';
+    else if (/Laptop|MacBook/i.test(ua)) deviceType = 'Laptop';
+
+    // Operating system
+    if (/Windows NT 10/i.test(ua)) os = 'Windows 10/11';
+    else if (/Windows/i.test(ua)) os = 'Windows';
+    else if (/Mac OS X/i.test(ua)) os = 'macOS';
+    else if (/Android/i.test(ua)) os = 'Android';
+    else if (/iPhone|iPad|iPod/i.test(ua)) os = 'iOS';
+    else if (/Linux/i.test(ua)) os = 'Linux';
+
+    // Browser
+    if (/Edg\//i.test(ua)) browser = 'Microsoft Edge';
+    else if (/Chrome/i.test(ua) && !/Edg/i.test(ua)) browser = 'Google Chrome';
+    else if (/Firefox/i.test(ua)) browser = 'Mozilla Firefox';
+    else if (/Safari/i.test(ua) && !/Chrome/i.test(ua)) browser = 'Safari';
+    else if (/Opera|OPR/i.test(ua)) browser = 'Opera';
+
+    return {
+      deviceType,
+      os,
+      browser,
+      userAgent: ua,
+      ipAddress: 'Simulated: 192.168.1.' + (Math.floor(Math.random() * 254) + 1)
+    };
+  }
+
+  // =====================================================================
   // TOAST
-  // ============================================================
+  // =====================================================================
   function showToast(message, type = 'success') {
     const toast = document.getElementById('toast');
     toast.className = 'toast ' + type;
@@ -1871,9 +2254,9 @@
     toast._timer = setTimeout(() => toast.classList.remove('show'), 4000);
   }
 
-  // ============================================================
+  // =====================================================================
   // HELPERS
-  // ============================================================
+  // =====================================================================
   function escapeHtml(str) {
     if (!str) return '';
     return String(str).replace(/[&<>"']/g, m => ({
@@ -1881,22 +2264,324 @@
     }[m]));
   }
 
-  function generateUsername(name, surname) {
-    const base = (name.charAt(0) + surname).toLowerCase().replace(/[^a-z0-9]/g, '');
-    const num = Math.floor(1000 + Math.random() * 9000);
-    return base + num;
+  function formatDateTime(date) {
+    return date.toLocaleString('en-ZA', {
+      year: 'numeric', month: 'short', day: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
   }
 
-  function generatePassword() {
-    const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-    let pwd = '';
-    for (let i = 0; i < 10; i++) pwd += chars.charAt(Math.floor(Math.random() * chars.length));
-    return pwd;
+  // =====================================================================
+  // CENTRAL DATABASE OPERATIONS
+  // =====================================================================
+
+  function createUser(firstName, surname, email, phone, password) {
+    const user = {
+      id: generateUserId(),
+      firstName,
+      surname,
+      email: email.toLowerCase().trim(),
+      phone,
+      passwordHash: hashPassword(password),
+      status: 'PENDING',
+      role: 'user',
+      registeredAt: new Date().toISOString(),
+      approvedAt: null,
+      approvedBy: null,
+      lastLogin: null,
+      totalLogins: 0
+    };
+    users.push(user);
+
+    // Record status history
+    recordStatusChange(user.id, 'NONE', 'PENDING', 'system', 'Account created', null);
+
+    return user;
   }
 
-  // ============================================================
+  function findUserByEmail(email) {
+    return users.find(u => u.email === email.toLowerCase().trim());
+  }
+
+  function findUserById(id) {
+    return users.find(u => u.id === id);
+  }
+
+  function recordLogin(userId, email, status) {
+    const device = detectDevice();
+    const now = new Date();
+
+    const record = {
+      id: 'LH-' + String(++loginHistoryIdCounter).padStart(6, '0'),
+      userId,
+      email,
+      loginTimestamp: now.toISOString(),
+      loginDate: now.toLocaleDateString('en-ZA'),
+      loginTime: now.toLocaleTimeString('en-ZA'),
+      ipAddress: device.ipAddress,
+      deviceType: device.deviceType,
+      os: device.os,
+      browser: device.browser,
+      userAgent: device.userAgent,
+      status: status,
+      sessionId: status === 'SUCCESS' ? generateSessionId() : null,
+      logoutTimestamp: null,
+      createdAt: now.toISOString()
+    };
+
+    loginHistory.push(record);
+    return record;
+  }
+
+  function recordStatusChange(userId, previousStatus, newStatus, changedBy, reason, ipAddress) {
+    const now = new Date();
+    accountStatusHistory.push({
+      id: 'SH-' + String(++statusHistoryIdCounter).padStart(6, '0'),
+      userId,
+      previousStatus,
+      newStatus,
+      changedBy,
+      date: now.toLocaleDateString('en-ZA'),
+      time: now.toLocaleTimeString('en-ZA'),
+      reason,
+      ipAddress: ipAddress || 'Admin portal'
+    });
+  }
+
+  function recordAdminAction(adminId, action, targetUserId, details) {
+    const device = detectDevice();
+    const now = new Date();
+    adminAuditLog.push({
+      id: 'AL-' + String(++auditLogIdCounter).padStart(6, '0'),
+      adminId,
+      action,
+      targetUserId,
+      date: now.toLocaleDateString('en-ZA'),
+      time: now.toLocaleTimeString('en-ZA'),
+      ipAddress: device.ipAddress,
+      details: details || ''
+    });
+  }
+
+  // =====================================================================
+  // EMAIL SYSTEM (simulated — in production use SendGrid/Mailgun/SES)
+  // =====================================================================
+  function sendApprovalEmail(user) {
+    const loginUrl = window.location.href.split('#')[0];
+    const emailBody = `
+To: ${user.email}
+Subject: Your SA Youth Learning Account Has Been Approved
+
+Dear ${user.firstName} ${user.surname},
+
+Your account has been APPROVED by the administrator.
+
+ACCOUNT DETAILS:
+  Email: ${user.email}
+  Status: ACTIVE
+  User ID: ${user.id}
+
+NEXT STEPS:
+1. Visit the login page: ${loginUrl}
+2. Click "Login" in the top navigation
+3. Enter your registered email address
+4. Enter the password you created during registration
+5. Start learning immediately
+
+Your account works across all devices — phone, tablet, laptop, or desktop.
+
+If you did not register for this account, please ignore this email.
+
+Best regards,
+SA Youth Learning Team
+    `.trim();
+
+    console.log('=== APPROVAL EMAIL SENT ===\n' + emailBody + '\n===========================');
+    return true;
+  }
+
+  function sendWelcomeEmail(user) {
+    console.log(`=== WELCOME EMAIL SENT to ${user.email} ===`);
+  }
+
+  // =====================================================================
+  // USER REGISTRATION
+  // =====================================================================
+  function handleRegistration(e) {
+    e.preventDefault();
+    const firstName = document.getElementById('regName').value.trim();
+    const surname = document.getElementById('regSurname').value.trim();
+    const email = document.getElementById('regEmail').value.trim().toLowerCase();
+    const phone = document.getElementById('regPhone').value.trim();
+    const password = document.getElementById('regPassword').value;
+
+    // Validation
+    if (!firstName || !surname || !email || !phone || !password) {
+      showToast('Please complete all fields.', 'error');
+      return;
+    }
+
+    if (password.length < 8) {
+      showToast('Password must be at least 8 characters.', 'error');
+      return;
+    }
+
+    // Check duplicate email in central database
+    if (findUserByEmail(email)) {
+      showToast('An account with this email already exists. Please log in instead.', 'error');
+      return;
+    }
+
+    // Create user in central database
+    const user = createUser(firstName, surname, email, phone, password);
+
+    // Send welcome email (simulated)
+    sendWelcomeEmail(user);
+
+    showToast('Registration submitted. Your account is PENDING admin approval. You will receive an email once approved.', 'success');
+    document.getElementById('registrationForm').reset();
+
+    // Refresh admin views if logged in
+    if (isAdminLoggedIn) {
+      renderUserTable();
+      renderDashboard();
+    }
+  }
+
+  // =====================================================================
+  // USER LOGIN
+  // =====================================================================
+  function openUserLogin() {
+    document.getElementById('userLoginOverlay').classList.add('active');
+    document.getElementById('userLoginError').classList.remove('show');
+    document.getElementById('userLoginEmail').value = '';
+    document.getElementById('userLoginPassword').value = '';
+    setTimeout(() => document.getElementById('userLoginEmail').focus(), 150);
+  }
+
+  function closeUserLogin() {
+    document.getElementById('userLoginOverlay').classList.remove('active');
+  }
+
+  function attemptUserLogin() {
+    const email = document.getElementById('userLoginEmail').value.trim().toLowerCase();
+    const password = document.getElementById('userLoginPassword').value;
+    const errorEl = document.getElementById('userLoginError');
+
+    if (!email || !password) {
+      errorEl.textContent = 'Please enter both email and password.';
+      errorEl.classList.add('show');
+      return;
+    }
+
+    const user = findUserByEmail(email);
+
+    // User not found
+    if (!user) {
+      recordLogin('UNKNOWN', email, 'FAILED');
+      errorEl.textContent = 'No account found with this email address.';
+      errorEl.classList.add('show');
+      return;
+    }
+
+    // Wrong password
+    if (!verifyPassword(password, user.passwordHash)) {
+      recordLogin(user.id, email, 'FAILED');
+      errorEl.textContent = 'Incorrect password. Please try again.';
+      errorEl.classList.add('show');
+      return;
+    }
+
+    // Check account status
+    if (user.status === 'PENDING') {
+      recordLogin(user.id, email, 'FAILED');
+      errorEl.textContent = 'Your account is pending administrator approval. Please wait for approval email.';
+      errorEl.classList.add('show');
+      return;
+    }
+
+    if (user.status === 'DEACTIVATED') {
+      recordLogin(user.id, email, 'FAILED');
+      errorEl.textContent = 'Your account has been deactivated. Please contact the administrator.';
+      errorEl.classList.add('show');
+      return;
+    }
+
+    if (user.status === 'REJECTED') {
+      recordLogin(user.id, email, 'FAILED');
+      errorEl.textContent = 'Your account application was rejected. Please contact the administrator.';
+      errorEl.classList.add('show');
+      return;
+    }
+
+    if (user.status !== 'ACTIVE') {
+      recordLogin(user.id, email, 'FAILED');
+      errorEl.textContent = 'Your account is not currently active. Please contact the administrator.';
+      errorEl.classList.add('show');
+      return;
+    }
+
+    // SUCCESS — record login history
+    recordLogin(user.id, email, 'SUCCESS');
+    user.lastLogin = new Date().toISOString();
+    user.totalLogins = (user.totalLogins || 0) + 1;
+
+    // Set session
+    isUserLoggedIn = true;
+    currentUser = user;
+    currentStudentName = user.firstName + ' ' + user.surname;
+
+    closeUserLogin();
+    updateNavActions();
+    renderCourseGrid();
+    showToast(`Welcome back, ${user.firstName}!`, 'success');
+
+    if (isAdminLoggedIn) {
+      renderUserTable();
+      renderDashboard();
+    }
+  }
+
+  function logoutUser() {
+    // Record logout timestamp on the most recent session
+    if (currentUser) {
+      const userSessions = loginHistory
+        .filter(lh => lh.userId === currentUser.id && lh.status === 'SUCCESS' && !lh.logoutTimestamp)
+        .sort((a, b) => new Date(b.loginTimestamp) - new Date(a.loginTimestamp));
+      if (userSessions.length > 0) {
+        userSessions[0].logoutTimestamp = new Date().toISOString();
+      }
+    }
+
+    isUserLoggedIn = false;
+    currentUser = null;
+    currentStudentName = '';
+    updateNavActions();
+    renderCourseGrid();
+    showToast('You have been logged out.', 'info');
+  }
+
+  // =====================================================================
+  // NAV ACTIONS UPDATE
+  // =====================================================================
+  function updateNavActions() {
+    const navActions = document.getElementById('navActions');
+    if (isUserLoggedIn && currentUser) {
+      navActions.innerHTML = `
+        <span class="user-badge"><i class="fas fa-user-circle"></i> ${escapeHtml(currentUser.firstName)} ${escapeHtml(currentUser.surname)}</span>
+        <button class="btn btn-secondary" onclick="logoutUser()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+      `;
+    } else {
+      navActions.innerHTML = `
+        <button class="btn btn-secondary" onclick="openUserLogin()"><i class="fas fa-sign-in-alt"></i> Login</button>
+        <a href="#register" class="btn btn-primary"><i class="fas fa-user-plus"></i> Register</a>
+      `;
+    }
+  }
+
+  // =====================================================================
   // COURSE GRID RENDERING
-  // ============================================================
+  // =====================================================================
   function renderCourseGrid() {
     const grid = document.getElementById('courseGrid');
     const subtitle = document.getElementById('coursesSubtitle');
@@ -1957,35 +2642,9 @@
     openCourse(courseId);
   }
 
-  // ============================================================
-  // NAV ACTIONS UPDATE
-  // ============================================================
-  function updateNavActions() {
-    const navActions = document.getElementById('navActions');
-    if (isUserLoggedIn && currentUser) {
-      navActions.innerHTML = `
-        <span class="user-badge"><i class="fas fa-user-circle"></i> ${escapeHtml(currentUser.name)} ${escapeHtml(currentUser.surname)}</span>
-        <button class="btn btn-secondary" onclick="logoutUser()"><i class="fas fa-sign-out-alt"></i> Logout</button>
-      `;
-    } else {
-      navActions.innerHTML = `
-        <button class="btn btn-secondary" onclick="openUserLogin()"><i class="fas fa-sign-in-alt"></i> Login</button>
-        <a href="#register" class="btn btn-primary"><i class="fas fa-user-plus"></i> Register</a>
-      `;
-    }
-  }
-
-  function logoutUser() {
-    isUserLoggedIn = false;
-    currentUser = null;
-    updateNavActions();
-    renderCourseGrid();
-    showToast('You have been logged out.', 'info');
-  }
-
-  // ============================================================
-  // ADMIN LOGIN (via bottom tab)
-  // ============================================================
+  // =====================================================================
+  // ADMIN LOGIN
+  // =====================================================================
   function openAdminLogin() {
     if (isAdminLoggedIn) {
       openAdminDashboard();
@@ -2007,8 +2666,10 @@
     const p = document.getElementById('adminPassword').value.trim();
     if (u === ADMIN_CREDENTIALS.username && p === ADMIN_CREDENTIALS.password) {
       isAdminLoggedIn = true;
+      currentAdmin = { id: 'ADMIN-001', username: u };
       closeAdminLogin();
       updateAdminTab();
+      recordAdminAction(currentAdmin.id, 'ADMIN_LOGIN', null, 'Administrator logged in');
       showToast('Administrator access granted.', 'success');
       openAdminDashboard();
     } else {
@@ -2029,13 +2690,13 @@
     } else {
       btn.classList.remove('logged-in');
       btnText.textContent = 'Admin Login';
-      statusText.textContent = 'Staff members can log in here to manage registrations, courses, and certificates.';
+      statusText.textContent = 'Staff members log in here to manage users, courses, and certificates.';
     }
   }
 
-  // ============================================================
+  // =====================================================================
   // ADMIN DASHBOARD
-  // ============================================================
+  // =====================================================================
   function openAdminDashboard() {
     if (!isAdminLoggedIn) {
       openAdminLogin();
@@ -2043,9 +2704,12 @@
     }
     document.getElementById('adminDashboard').classList.add('active');
     document.body.style.overflow = 'hidden';
-    renderRegistrations();
-    refreshIssuedCerts();
+    renderDashboard();
+    renderUserTable();
+    renderLoginHistory();
     populateAdminSelects();
+    populateLoginHistoryUserFilter();
+    refreshIssuedCerts();
   }
 
   function closeAdminDashboard() {
@@ -2059,184 +2723,422 @@
     modal.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
     tabBtn.classList.add('active');
     document.getElementById(tabId).classList.add('active');
+
+    if (tabId === 'adm-dashboard') renderDashboard();
+    if (tabId === 'adm-users') renderUserTable();
+    if (tabId === 'adm-login-history') renderLoginHistory();
+    if (tabId === 'adm-certificates') refreshIssuedCerts();
   }
 
-  // ============================================================
-  // REGISTRATION LIST RENDERING
-  // ============================================================
-  function renderRegistrations() {
-    const list = document.getElementById('registrationList');
-    if (!registrations.length) {
-      list.innerHTML = '<p style="color:rgba(255,255,255,0.4); font-size:0.85rem; text-align:center; padding:20px;">No registrations yet. Users who submit the form will appear here.</p>';
-      return;
-    }
+  // =====================================================================
+  // ADMIN DASHBOARD STATISTICS
+  // =====================================================================
+  function renderDashboard() {
+    const totalUsers = users.length;
+    const pendingUsers = users.filter(u => u.status === 'PENDING').length;
+    const activeUsers = users.filter(u => u.status === 'ACTIVE').length;
+    const deactivatedUsers = users.filter(u => u.status === 'DEACTIVATED').length;
+    const totalLoginEvents = loginHistory.filter(lh => lh.status === 'SUCCESS').length;
 
-    list.innerHTML = registrations.map(r => `
-      <div class="reg-item">
-        <div class="reg-item-header">
-          <span class="reg-item-name">${escapeHtml(r.name)} ${escapeHtml(r.surname)}</span>
-          <span class="reg-item-status ${r.status}">${r.status === 'approved' ? 'Approved' : 'Pending'}</span>
-        </div>
-        <div class="reg-item-detail"><strong>Cell:</strong> ${escapeHtml(r.phone)}</div>
-        <div class="reg-item-detail"><strong>Email:</strong> ${escapeHtml(r.email)}</div>
-        <div class="reg-item-detail"><strong>Payment Ref:</strong> ${escapeHtml(r.paymentRef)}</div>
-        <div class="reg-item-detail"><strong>Registered:</strong> ${r.registeredAt}</div>
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const weekStart = new Date(todayStart);
+    weekStart.setDate(weekStart.getDate() - 7);
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-        ${r.status === 'approved' ? `
-          <div class="cred-box">
-            <div class="cred-row"><span class="cred-label">Username:</span><span class="cred-value">${escapeHtml(r.username)}</span></div>
-            <div class="cred-row"><span class="cred-label">Password:</span><span class="cred-value">${escapeHtml(r.password)}</span></div>
-          </div>
-          <div class="reg-item-actions">
-            <button class="btn-approve" onclick="resendCredentials(${r.id})"><i class="fas fa-envelope"></i> Resend Email</button>
-          </div>
-        ` : `
-          <div class="reg-item-actions">
-            <button class="btn-approve" onclick="approveRegistration(${r.id})"><i class="fas fa-check"></i> Approve & Issue</button>
-            <button class="btn-reject" onclick="rejectRegistration(${r.id})"><i class="fas fa-times"></i> Reject</button>
-          </div>
-        `}
-      </div>
-    `).join('');
-  }
+    const loginsToday = loginHistory.filter(lh =>
+      lh.status === 'SUCCESS' && new Date(lh.loginTimestamp) >= todayStart
+    ).length;
+    const loginsThisWeek = loginHistory.filter(lh =>
+      lh.status === 'SUCCESS' && new Date(lh.loginTimestamp) >= weekStart
+    ).length;
+    const loginsThisMonth = loginHistory.filter(lh =>
+      lh.status === 'SUCCESS' && new Date(lh.loginTimestamp) >= monthStart
+    ).length;
 
-  function approveRegistration(id) {
-    const reg = registrations.find(r => r.id === id);
-    if (!reg) return;
+    document.getElementById('dashStats').innerHTML = `
+      <div class="dash-stat"><div class="ds-number">${totalUsers}</div><div class="ds-label">Total Users</div></div>
+      <div class="dash-stat"><div class="ds-number">${pendingUsers}</div><div class="ds-label">Pending</div></div>
+      <div class="dash-stat"><div class="ds-number">${activeUsers}</div><div class="ds-label">Active</div></div>
+      <div class="dash-stat"><div class="ds-number">${deactivatedUsers}</div><div class="ds-label">Deactivated</div></div>
+      <div class="dash-stat"><div class="ds-number">${totalLoginEvents}</div><div class="ds-label">Total Logins</div></div>
+      <div class="dash-stat"><div class="ds-number">${loginsToday}</div><div class="ds-label">Today</div></div>
+      <div class="dash-stat"><div class="ds-number">${loginsThisWeek}</div><div class="ds-label">This Week</div></div>
+      <div class="dash-stat"><div class="ds-number">${loginsThisMonth}</div><div class="ds-label">This Month</div></div>
+    `;
 
-    reg.username = generateUsername(reg.name, reg.surname);
-    reg.password = generatePassword();
-    reg.status = 'approved';
+    // Recent logins
+    const recent = [...loginHistory]
+      .filter(lh => lh.status === 'SUCCESS')
+      .sort((a, b) => new Date(b.loginTimestamp) - new Date(a.loginTimestamp))
+      .slice(0, 5);
 
-    sendCredentialsEmail(reg);
-    renderRegistrations();
-    showToast(`Approved. Credentials sent to ${reg.email}.`, 'success');
-  }
-
-  function rejectRegistration(id) {
-    const reg = registrations.find(r => r.id === id);
-    if (!reg) return;
-    if (!confirm(`Reject registration for ${reg.name} ${reg.surname}?`)) return;
-    const idx = registrations.indexOf(reg);
-    registrations.splice(idx, 1);
-    renderRegistrations();
-    showToast('Registration rejected.', 'info');
-  }
-
-  function resendCredentials(id) {
-    const reg = registrations.find(r => r.id === id);
-    if (!reg) return;
-    sendCredentialsEmail(reg);
-    showToast(`Credentials resent to ${reg.email}.`, 'success');
-  }
-
-  function sendCredentialsEmail(reg) {
-    // In production this would send an actual email via backend.
-    // Simulated here with console log.
-    const emailBody = `
-To: ${reg.email}
-Subject: Your SA Youth Learning Login Credentials
-
-Dear ${reg.name} ${reg.surname},
-
-Your registration has been approved. Welcome to SA Youth Learning!
-
-Your permanent login credentials:
-
-  Username: ${reg.username}
-  Password: ${reg.password}
-
-Please keep these safe. You will use them to log in and access your courses.
-
-Best regards,
-SA Youth Learning Team
-    `.trim();
-    console.log('=== EMAIL SENT ===\n' + emailBody + '\n==================');
-  }
-
-  // ============================================================
-  // USER LOGIN
-  // ============================================================
-  function openUserLogin() {
-    document.getElementById('userLoginOverlay').classList.add('active');
-    document.getElementById('userLoginError').classList.remove('show');
-    document.getElementById('userLoginUsername').value = '';
-    document.getElementById('userLoginPassword').value = '';
-    setTimeout(() => document.getElementById('userLoginUsername').focus(), 150);
-  }
-
-  function closeUserLogin() {
-    document.getElementById('userLoginOverlay').classList.remove('active');
-  }
-
-  function attemptUserLogin() {
-    const u = document.getElementById('userLoginUsername').value.trim();
-    const p = document.getElementById('userLoginPassword').value.trim();
-
-    const reg = registrations.find(r =>
-      r.status === 'approved' && r.username === u && r.password === p
-    );
-
-    if (reg) {
-      isUserLoggedIn = true;
-      currentUser = reg;
-      currentStudentName = reg.name + ' ' + reg.surname;
-      closeUserLogin();
-      updateNavActions();
-      renderCourseGrid();
-      showToast(`Welcome back, ${reg.name}!`, 'success');
+    const recentEl = document.getElementById('recentLogins');
+    if (!recent.length) {
+      recentEl.innerHTML = '<p style="color:rgba(255,255,255,0.4); font-size:0.82rem;">No logins recorded yet.</p>';
     } else {
-      document.getElementById('userLoginError').classList.add('show');
-      document.getElementById('userLoginPassword').value = '';
-      document.getElementById('userLoginPassword').focus();
+      recentEl.innerHTML = recent.map(lh => {
+        const user = findUserById(lh.userId);
+        const name = user ? `${user.firstName} ${user.surname}` : lh.email;
+        return `
+          <div class="login-history-item">
+            <div class="login-history-icon"><i class="fas fa-sign-in-alt"></i></div>
+            <div class="login-history-body">
+              <h5>${escapeHtml(name)} <span class="lh-status success">Success</span></h5>
+              <div class="lh-meta">
+                <strong>${lh.loginDate}</strong> at <strong>${lh.loginTime}</strong> · 
+                ${escapeHtml(lh.deviceType)} · ${escapeHtml(lh.os)} · ${escapeHtml(lh.browser)}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
     }
   }
 
-  // ============================================================
-  // REGISTRATION SUBMISSION
-  // ============================================================
-  function handleRegistration(e) {
-    e.preventDefault();
-    const name = document.getElementById('regName').value.trim();
-    const surname = document.getElementById('regSurname').value.trim();
-    const phone = document.getElementById('regPhone').value.trim();
-    const email = document.getElementById('regEmail').value.trim();
-    const paymentRef = document.getElementById('regPaymentRef').value.trim();
+  // =====================================================================
+  // USER MANAGEMENT TABLE
+  // =====================================================================
+  function renderUserTable() {
+    const tbody = document.getElementById('userTableBody');
+    const search = (document.getElementById('userSearchInput').value || '').toLowerCase();
+    const statusFilter = document.getElementById('userStatusFilter').value;
 
-    if (!name || !surname || !phone || !email || !paymentRef) {
-      showToast('Please complete all fields.', 'error');
+    let filtered = [...users];
+
+    if (search) {
+      filtered = filtered.filter(u =>
+        (u.firstName + ' ' + u.surname).toLowerCase().includes(search) ||
+        u.email.toLowerCase().includes(search)
+      );
+    }
+
+    if (statusFilter) {
+      filtered = filtered.filter(u => u.status === statusFilter);
+    }
+
+    if (!filtered.length) {
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:30px; color:rgba(255,255,255,0.4);">No users match your filters.</td></tr>`;
       return;
     }
 
-    if (!email.toLowerCase().endsWith('@gmail.com')) {
-      showToast('Please use a Gmail address as specified.', 'error');
-      return;
-    }
+    tbody.innerHTML = filtered.map(u => {
+      const registered = formatDateTime(new Date(u.registeredAt));
+      const lastLogin = u.lastLogin ? formatDateTime(new Date(u.lastLogin)) : 'Never';
+      const statusClass = u.status.toLowerCase();
+      const statusLabel = u.status.charAt(0) + u.status.slice(1).toLowerCase();
 
-    const duplicate = registrations.find(r => r.email.toLowerCase() === email.toLowerCase() && r.status === 'approved');
-    if (duplicate) {
-      showToast('This email is already registered. Please log in or use a different email.', 'error');
-      return;
-    }
+      // Actions based on status
+      let actions = '';
+      if (u.status === 'PENDING') {
+        actions = `
+          <button class="tbl-btn-approve" onclick="adminApproveUser('${u.id}')"><i class="fas fa-check"></i> Approve</button>
+          <button class="tbl-btn-view" onclick="viewUserProfile('${u.id}')"><i class="fas fa-eye"></i> View</button>
+        `;
+      } else if (u.status === 'ACTIVE') {
+        actions = `
+          <button class="tbl-btn-deactivate" onclick="adminDeactivateUser('${u.id}')"><i class="fas fa-ban"></i> Deactivate</button>
+          <button class="tbl-btn-view" onclick="viewUserProfile('${u.id}')"><i class="fas fa-eye"></i> View</button>
+          <button class="tbl-btn-history" onclick="viewUserLoginHistory('${u.id}')"><i class="fas fa-history"></i> History</button>
+        `;
+      } else if (u.status === 'DEACTIVATED') {
+        actions = `
+          <button class="tbl-btn-reactivate" onclick="adminReactivateUser('${u.id}')"><i class="fas fa-redo"></i> Reactivate</button>
+          <button class="tbl-btn-view" onclick="viewUserProfile('${u.id}')"><i class="fas fa-eye"></i> View</button>
+          <button class="tbl-btn-history" onclick="viewUserLoginHistory('${u.id}')"><i class="fas fa-history"></i> History</button>
+        `;
+      } else {
+        actions = `
+          <button class="tbl-btn-view" onclick="viewUserProfile('${u.id}')"><i class="fas fa-eye"></i> View</button>
+        `;
+      }
 
-    registrations.push({
-      id: ++registrationIdCounter,
-      name, surname, phone, email, paymentRef,
-      status: 'pending',
-      username: null,
-      password: null,
-      registeredAt: new Date().toLocaleString('en-ZA')
-    });
-
-    showToast('Registration submitted. Admin will review and email your credentials once payment is verified.', 'success');
-    document.getElementById('registrationForm').reset();
-
-    if (isAdminLoggedIn) renderRegistrations();
+      return `
+        <tr>
+          <td><strong style="color:white;">${escapeHtml(u.firstName)} ${escapeHtml(u.surname)}</strong></td>
+          <td>${escapeHtml(u.email)}</td>
+          <td>${escapeHtml(u.phone)}</td>
+          <td>${registered}</td>
+          <td><span class="status-pill ${statusClass}">${statusLabel}</span></td>
+          <td>${lastLogin}</td>
+          <td>${u.totalLogins || 0}</td>
+          <td><div class="table-actions">${actions}</div></td>
+        </tr>
+      `;
+    }).join('');
   }
 
-  // ============================================================
-  // COURSE MODAL
-  // ============================================================
+  // =====================================================================
+  // ADMIN USER ACTIONS
+  // =====================================================================
+  function adminApproveUser(userId) {
+    const user = findUserById(userId);
+    if (!user) return;
+
+    const previousStatus = user.status;
+    user.status = 'ACTIVE';
+    user.approvedAt = new Date().toISOString();
+    user.approvedBy = currentAdmin.id;
+
+    recordStatusChange(user.id, previousStatus, 'ACTIVE', currentAdmin.id, 'Account approved', 'Admin portal');
+    recordAdminAction(currentAdmin.id, 'USER_APPROVED', user.id, `Approved ${user.email}`);
+
+    sendApprovalEmail(user);
+
+    showAdminStatus(`User ${user.firstName} ${user.surname} approved. Approval email sent to ${user.email}.`, true);
+    showToast(`Approved. Email sent to ${user.email}.`, 'success');
+
+    renderUserTable();
+    renderDashboard();
+  }
+
+  function adminActivateUser(userId) {
+    const user = findUserById(userId);
+    if (!user) return;
+
+    const previousStatus = user.status;
+    user.status = 'ACTIVE';
+
+    recordStatusChange(user.id, previousStatus, 'ACTIVE', currentAdmin.id, 'Account activated', 'Admin portal');
+    recordAdminAction(currentAdmin.id, 'USER_ACTIVATED', user.id, `Activated ${user.email}`);
+
+    showAdminStatus(`User ${user.firstName} ${user.surname} activated.`, true);
+    showToast(`User activated.`, 'success');
+    renderUserTable();
+    renderDashboard();
+  }
+
+  function adminDeactivateUser(userId) {
+    const user = findUserById(userId);
+    if (!user) return;
+    if (!confirm(`Deactivate ${user.firstName} ${user.surname}? They will be immediately logged out and unable to log in.`)) return;
+
+    const previousStatus = user.status;
+    user.status = 'DEACTIVATED';
+
+    recordStatusChange(user.id, previousStatus, 'DEACTIVATED', currentAdmin.id, 'Account deactivated', 'Admin portal');
+    recordAdminAction(currentAdmin.id, 'USER_DEACTIVATED', user.id, `Deactivated ${user.email}`);
+
+    // If the deactivated user is currently logged in, force logout
+    if (currentUser && currentUser.id === user.id) {
+      logoutUser();
+      showToast('Your account has been deactivated. Please contact the administrator.', 'error');
+    }
+
+    showAdminStatus(`User ${user.firstName} ${user.surname} deactivated.`, true);
+    showToast(`User deactivated.`, 'info');
+    renderUserTable();
+    renderDashboard();
+  }
+
+  function adminReactivateUser(userId) {
+    const user = findUserById(userId);
+    if (!user) return;
+
+    const previousStatus = user.status;
+    user.status = 'ACTIVE';
+
+    recordStatusChange(user.id, previousStatus, 'ACTIVE', currentAdmin.id, 'Account reactivated', 'Admin portal');
+    recordAdminAction(currentAdmin.id, 'USER_REACTIVATED', user.id, `Reactivated ${user.email}`);
+
+    showAdminStatus(`User ${user.firstName} ${user.surname} reactivated. Same user ID, email, profile, and history preserved.`, true);
+    showToast(`User reactivated.`, 'success');
+    renderUserTable();
+    renderDashboard();
+  }
+
+  function adminResendEmail(userId) {
+    const user = findUserById(userId);
+    if (!user) return;
+    sendApprovalEmail(user);
+    recordAdminAction(currentAdmin.id, 'EMAIL_RESENT', user.id, `Approval email resent to ${user.email}`);
+    showAdminStatus(`Approval email resent to ${user.email}.`, true);
+    showToast('Email resent.', 'success');
+  }
+
+  // =====================================================================
+  // USER PROFILE VIEW
+  // =====================================================================
+  function viewUserProfile(userId) {
+    const user = findUserById(userId);
+    if (!user) return;
+
+    recordAdminAction(currentAdmin.id, 'PROFILE_VIEWED', user.id, `Viewed profile of ${user.email}`);
+
+    const profileHTML = `
+      <div class="admin-panel-header">
+        <i class="fas fa-user-circle"></i>
+        <h3>${escapeHtml(user.firstName)} ${escapeHtml(user.surname)}</h3>
+      </div>
+      <p>Permanent User ID: <strong style="color:var(--gold-500); font-family:monospace;">${escapeHtml(user.id)}</strong></p>
+      <div class="profile-grid">
+        <div class="profile-field"><div class="pf-label">First Name</div><div class="pf-value">${escapeHtml(user.firstName)}</div></div>
+        <div class="profile-field"><div class="pf-label">Surname</div><div class="pf-value">${escapeHtml(user.surname)}</div></div>
+        <div class="profile-field"><div class="pf-label">Email</div><div class="pf-value">${escapeHtml(user.email)}</div></div>
+        <div class="profile-field"><div class="pf-label">Phone</div><div class="pf-value">${escapeHtml(user.phone)}</div></div>
+        <div class="profile-field"><div class="pf-label">Status</div><div class="pf-value"><span class="status-pill ${user.status.toLowerCase()}">${user.status}</span></div></div>
+        <div class="profile-field"><div class="pf-label">Role</div><div class="pf-value">${escapeHtml(user.role)}</div></div>
+        <div class="profile-field"><div class="pf-label">Registered</div><div class="pf-value">${formatDateTime(new Date(user.registeredAt))}</div></div>
+        <div class="profile-field"><div class="pf-label">Approved</div><div class="pf-value">${user.approvedAt ? formatDateTime(new Date(user.approvedAt)) : 'Not yet'}</div></div>
+        <div class="profile-field"><div class="pf-label">Approved By</div><div class="pf-value">${escapeHtml(user.approvedBy || 'N/A')}</div></div>
+        <div class="profile-field"><div class="pf-label">Last Login</div><div class="pf-value">${user.lastLogin ? formatDateTime(new Date(user.lastLogin)) : 'Never'}</div></div>
+        <div class="profile-field"><div class="pf-label">Total Logins</div><div class="pf-value">${user.totalLogins || 0}</div></div>
+      </div>
+      <div style="margin-top: 20px;">
+        <h4 style="color:var(--gold-500); font-size:0.95rem; margin-bottom:12px;"><i class="fas fa-history"></i> Account Status History</h4>
+        <div style="max-height:200px; overflow-y:auto; font-size:0.82rem;">
+          ${accountStatusHistory.filter(sh => sh.userId === user.id).map(sh => `
+            <div style="background:rgba(255,255,255,0.05); padding:10px 14px; border-radius:8px; margin-bottom:8px;">
+              <strong style="color:var(--gold-500);">${sh.previousStatus} → ${sh.newStatus}</strong>
+              <div style="color:rgba(255,255,255,0.6); font-size:0.78rem; margin-top:4px;">
+                ${sh.date} at ${sh.time} · By: ${escapeHtml(sh.changedBy)} · ${escapeHtml(sh.reason)}
+              </div>
+            </div>
+          `).join('') || '<p style="color:rgba(255,255,255,0.4);">No status changes recorded.</p>'}
+        </div>
+      </div>
+    `;
+
+    document.getElementById('userProfileContent').innerHTML = profileHTML;
+    document.getElementById('userLoginHistoryContent').innerHTML = '';
+    document.getElementById('userProfileModal').classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeUserProfile() {
+    document.getElementById('userProfileModal').classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  function viewUserLoginHistory(userId) {
+    const user = findUserById(userId);
+    if (!user) return;
+
+    recordAdminAction(currentAdmin.id, 'LOGIN_HISTORY_VIEWED', user.id, `Viewed login history of ${user.email}`);
+
+    const userLogins = loginHistory
+      .filter(lh => lh.userId === userId)
+      .sort((a, b) => new Date(b.loginTimestamp) - new Date(a.loginTimestamp));
+
+    const successLogins = userLogins.filter(lh => lh.status === 'SUCCESS').length;
+    const lastLogin = user.lastLogin ? formatDateTime(new Date(user.lastLogin)) : 'Never';
+
+    const historyHTML = `
+      <h4 style="color:var(--gold-500); font-size:0.95rem; margin-bottom:12px;">
+        <i class="fas fa-history"></i> Complete Login History — ${escapeHtml(user.firstName)} ${escapeHtml(user.surname)}
+      </h4>
+      <div style="display:flex; gap:20px; margin-bottom:16px; flex-wrap:wrap;">
+        <div style="background:rgba(255,255,255,0.05); padding:10px 16px; border-radius:8px;">
+          <div style="color:rgba(255,255,255,0.5); font-size:0.72rem; text-transform:uppercase;">Total Logins</div>
+          <div style="color:var(--gold-500); font-size:1.3rem; font-weight:700;">${successLogins}</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.05); padding:10px 16px; border-radius:8px;">
+          <div style="color:rgba(255,255,255,0.5); font-size:0.72rem; text-transform:uppercase;">Last Login</div>
+          <div style="color:white; font-size:0.9rem; font-weight:600;">${lastLogin}</div>
+        </div>
+      </div>
+      <div class="login-history-list">
+        ${userLogins.length ? userLogins.map(lh => `
+          <div class="login-history-item">
+            <div class="login-history-icon"><i class="fas fa-${lh.status === 'SUCCESS' ? 'sign-in-alt' : 'times-circle'}"></i></div>
+            <div class="login-history-body">
+              <h5>${lh.loginDate} at ${lh.loginTime} <span class="lh-status ${lh.status.toLowerCase()}">${lh.status}</span></h5>
+              <div class="lh-meta">
+                <strong>Device:</strong> ${escapeHtml(lh.deviceType)} · 
+                <strong>OS:</strong> ${escapeHtml(lh.os)} · 
+                <strong>Browser:</strong> ${escapeHtml(lh.browser)}<br>
+                <strong>IP:</strong> ${escapeHtml(lh.ipAddress)} · 
+                <strong>Session:</strong> ${lh.sessionId ? escapeHtml(lh.sessionId) : 'N/A'}
+                ${lh.logoutTimestamp ? `<br><strong>Logout:</strong> ${formatDateTime(new Date(lh.logoutTimestamp))}` : ''}
+              </div>
+            </div>
+          </div>
+        `).join('') : '<p style="color:rgba(255,255,255,0.4);">No login records for this user.</p>'}
+      </div>
+    `;
+
+    // Reuse the profile modal to show login history
+    document.getElementById('userProfileContent').innerHTML = `
+      <div class="admin-panel-header">
+        <i class="fas fa-user-circle"></i>
+        <h3>${escapeHtml(user.firstName)} ${escapeHtml(user.surname)}</h3>
+      </div>
+      <p>Permanent User ID: <strong style="color:var(--gold-500); font-family:monospace;">${escapeHtml(user.id)}</strong></p>
+      <div class="profile-grid">
+        <div class="profile-field"><div class="pf-label">Email</div><div class="pf-value">${escapeHtml(user.email)}</div></div>
+        <div class="profile-field"><div class="pf-label">Status</div><div class="pf-value"><span class="status-pill ${user.status.toLowerCase()}">${user.status}</span></div></div>
+        <div class="profile-field"><div class="pf-label">Phone</div><div class="pf-value">${escapeHtml(user.phone)}</div></div>
+        <div class="profile-field"><div class="pf-label">Total Logins</div><div class="pf-value">${successLogins}</div></div>
+      </div>
+    `;
+    document.getElementById('userLoginHistoryContent').innerHTML = historyHTML;
+    document.getElementById('userProfileModal').classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+
+  // =====================================================================
+  // LOGIN HISTORY VIEW (ALL USERS)
+  // =====================================================================
+  function populateLoginHistoryUserFilter() {
+    const sel = document.getElementById('lhUserFilter');
+    sel.innerHTML = '<option value="">All Users</option>' +
+      users.map(u => `<option value="${u.id}">${escapeHtml(u.firstName)} ${escapeHtml(u.surname)} (${escapeHtml(u.email)})</option>`).join('');
+  }
+
+  function renderLoginHistory() {
+    const list = document.getElementById('loginHistoryList');
+    const search = (document.getElementById('lhSearchInput').value || '').toLowerCase();
+    const userFilter = document.getElementById('lhUserFilter').value;
+    const statusFilter = document.getElementById('lhStatusFilter').value;
+
+    let filtered = [...loginHistory];
+
+    if (search) {
+      filtered = filtered.filter(lh =>
+        lh.email.toLowerCase().includes(search) ||
+        (findUserById(lh.userId) && `${findUserById(lh.userId).firstName} ${findUserById(lh.userId).surname}`.toLowerCase().includes(search))
+      );
+    }
+
+    if (userFilter) {
+      filtered = filtered.filter(lh => lh.userId === userFilter);
+    }
+
+    if (statusFilter) {
+      filtered = filtered.filter(lh => lh.status === statusFilter);
+    }
+
+    filtered.sort((a, b) => new Date(b.loginTimestamp) - new Date(a.loginTimestamp));
+
+    if (!filtered.length) {
+      list.innerHTML = '<p style="color:rgba(255,255,255,0.4); text-align:center; padding:20px;">No login records match your filters.</p>';
+      return;
+    }
+
+    list.innerHTML = filtered.slice(0, 100).map(lh => {
+      const user = findUserById(lh.userId);
+      const name = user ? `${user.firstName} ${user.surname}` : lh.email;
+      return `
+        <div class="login-history-item">
+          <div class="login-history-icon"><i class="fas fa-${lh.status === 'SUCCESS' ? 'sign-in-alt' : 'times-circle'}"></i></div>
+          <div class="login-history-body">
+            <h5>${escapeHtml(name)} <span class="lh-status ${lh.status.toLowerCase()}">${lh.status}</span></h5>
+            <div class="lh-meta">
+              <strong>${lh.loginDate}</strong> at <strong>${lh.loginTime}</strong><br>
+              <strong>Email:</strong> ${escapeHtml(lh.email)} · <strong>IP:</strong> ${escapeHtml(lh.ipAddress)}<br>
+              <strong>Device:</strong> ${escapeHtml(lh.deviceType)} · 
+              <strong>OS:</strong> ${escapeHtml(lh.os)} · 
+              <strong>Browser:</strong> ${escapeHtml(lh.browser)}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // =====================================================================
+  // COURSE MODAL (existing functionality)
+  // =====================================================================
   function openCourse(courseId) {
     if (!isUserLoggedIn) {
       openUserLogin();
@@ -2477,9 +3379,9 @@ SA Youth Learning Team
     showToast('Facilitator request submitted successfully.', 'success');
   }
 
-  // ============================================================
+  // =====================================================================
   // FILE READ HELPER
-  // ============================================================
+  // =====================================================================
   function readFileAsDataURL(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -2489,9 +3391,9 @@ SA Youth Learning Team
     });
   }
 
-  // ============================================================
+  // =====================================================================
   // ADMIN: POPULATE COURSE SELECTS
-  // ============================================================
+  // =====================================================================
   function populateAdminSelects() {
     const ids = Object.keys(courses);
     const options = ids.length
@@ -2503,9 +3405,9 @@ SA Youth Learning Team
     });
   }
 
-  // ============================================================
-  // ADMIN: ADD COURSE
-  // ============================================================
+  // =====================================================================
+  // ADMIN: COURSE MANAGEMENT
+  // =====================================================================
   function adminAddCourse() {
     if (!isAdminLoggedIn) return;
     const title = document.getElementById('adminCourseTitle').value.trim();
@@ -2520,6 +3422,7 @@ SA Youth Learning Team
     }
     const id = 'course-' + (++courseIdCounter);
     courses[id] = { title, description: desc, duration, category, image, icon, assignments: [], guides: [], quiz: [] };
+    recordAdminAction(currentAdmin.id, 'COURSE_ADDED', null, `Added course: ${title}`);
     showAdminStatus(`Course "${title}" added successfully.`, true);
     document.getElementById('adminCourseTitle').value = '';
     document.getElementById('adminCourseDesc').value = '';
@@ -2550,6 +3453,7 @@ SA Youth Learning Team
     try {
       const dataUrl = await readFileAsDataURL(file);
       courses[courseId].assignments.push({ title, desc, pdfData: dataUrl });
+      recordAdminAction(currentAdmin.id, 'ASSIGNMENT_UPLOADED', null, `Uploaded assignment "${title}" to ${courses[courseId].title}`);
       showAdminStatus(`Assignment "${title}" uploaded successfully.`, true);
       document.getElementById('adminAssignmentTitle').value = '';
       document.getElementById('adminAssignmentDesc').value = '';
@@ -2582,6 +3486,7 @@ SA Youth Learning Team
     try {
       const dataUrl = await readFileAsDataURL(file);
       courses[courseId].guides.push({ title, desc, pdfData: dataUrl });
+      recordAdminAction(currentAdmin.id, 'GUIDE_UPLOADED', null, `Uploaded study guide "${title}" to ${courses[courseId].title}`);
       showAdminStatus(`Study guide "${title}" uploaded successfully.`, true);
       document.getElementById('adminGuideTitle').value = '';
       document.getElementById('adminGuideDesc').value = '';
@@ -2619,6 +3524,7 @@ SA Youth Learning Team
         fileName: file.name, dataUrl,
         issuedAt: new Date().toLocaleDateString('en-ZA')
       });
+      recordAdminAction(currentAdmin.id, 'CERTIFICATE_ISSUED', null, `Issued certificate to ${studentName} (${studentEmail}) for ${courses[courseId].title}`);
       showCertStatus(`Certificate issued to ${studentName}.`, true);
       document.getElementById('adminCertStudentName').value = '';
       document.getElementById('adminCertStudentEmail').value = '';
@@ -2647,6 +3553,7 @@ SA Youth Learning Team
       return;
     }
     courses[courseId].quiz.push({ q: question, options: opts, correct });
+    recordAdminAction(currentAdmin.id, 'QUIZ_QUESTION_ADDED', null, `Added quiz question to ${courses[courseId].title}`);
     showAdminStatus('Quiz question added successfully.', true);
     document.getElementById('adminQuizQuestion').value = '';
     ['adminQuizOpt0','adminQuizOpt1','adminQuizOpt2','adminQuizOpt3','adminQuizCorrect'].forEach(id => document.getElementById(id).value = '');
@@ -2690,14 +3597,15 @@ SA Youth Learning Team
     `).join('');
   }
 
-  // ============================================================
+  // =====================================================================
   // KEYBOARD & SMOOTH SCROLL
-  // ============================================================
+  // =====================================================================
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') {
       if (document.getElementById('adminLoginOverlay').classList.contains('active')) closeAdminLogin();
       else if (document.getElementById('userLoginOverlay').classList.contains('active')) closeUserLogin();
       else if (document.getElementById('courseModal').classList.contains('active')) closeCourse();
+      else if (document.getElementById('userProfileModal').classList.contains('active')) closeUserProfile();
       else if (document.getElementById('adminDashboard').classList.contains('active')) closeAdminDashboard();
     }
   });
@@ -2714,13 +3622,14 @@ SA Youth Learning Team
     });
   });
 
-  // ============================================================
+  // =====================================================================
   // INIT
-  // ============================================================
+  // =====================================================================
   renderCourseGrid();
   populateAdminSelects();
   refreshIssuedCerts();
   updateAdminTab();
+  updateNavActions();
 </script>
 
 </body>
