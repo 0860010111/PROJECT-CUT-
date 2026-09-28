@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -31,6 +32,7 @@ body{font-family:'Inter',sans-serif;background:#fafbfc;color:#1a2b3c;line-height
 .btn-accent:hover{background:var(--gold-600);transform:translateY(-1px)}
 .btn-teal{background:var(--teal-600);color:#fff;box-shadow:var(--shadow-sm)}
 .btn-teal:hover{background:var(--teal-500);transform:translateY(-1px)}
+.btn-danger{background:var(--danger);color:#fff}
 .btn-large{padding:14px 32px;font-size:1rem}
 .btn-sm{padding:7px 14px;font-size:.82rem}
 .btn-block{width:100%}
@@ -261,6 +263,8 @@ body{font-family:'Inter',sans-serif;background:#fafbfc;color:#1a2b3c;line-height
 .filter-bar select option{color:var(--gray-900)}
 .filter-bar .fb-label{color:rgba(255,255,255,.6);font-size:.78rem;font-weight:600}
 .hidden{display:none!important}
+.loading-spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
 @media(max-width:900px){.hero-grid{flex-direction:column;text-align:center;gap:40px}.hero-content h1{font-size:2.5rem}.hero-content p{margin-left:auto;margin-right:auto}.hero-actions{justify-content:center}.navbar{flex-direction:column;align-items:stretch}.nav-links{justify-content:center;gap:6px 16px}.nav-actions{justify-content:center}.about-panel{flex-direction:column;text-align:center;padding:40px 28px}.register-grid{grid-template-columns:1fr}.footer-grid{grid-template-columns:1fr 1fr}.admin-tab-inner{flex-direction:column;text-align:center}}
 @media(max-width:600px){.hero-content h1{font-size:2rem}.section-title{font-size:1.7rem}.footer-grid{grid-template-columns:1fr}.modal-body{padding:24px}.admin-tab-btn{width:100%;justify-content:center}}
 </style>
@@ -310,7 +314,9 @@ body{font-family:'Inter',sans-serif;background:#fafbfc;color:#1a2b3c;line-height
 <h2 class="section-title">Available Courses</h2>
 <p class="section-sub" id="coursesSubtitle">Register and get approved to access all courses. Your account works across all devices.</p>
 </div>
-<div class="course-grid" id="courseGrid"></div>
+<div class="course-grid" id="courseGrid">
+<div class="empty-state"><i class="fas fa-spinner fa-spin"></i><h3>Loading courses...</h3></div>
+</div>
 </div>
 </section>
 
@@ -379,7 +385,7 @@ body{font-family:'Inter',sans-serif;background:#fafbfc;color:#1a2b3c;line-height
 <div class="form-group"><label for="regEmail">Email Address</label><input type="email" id="regEmail" placeholder="yourname@gmail.com" required><div class="form-hint">Used for account approval and login</div></div>
 <div class="form-group"><label for="regPhone">Phone Number</label><input type="tel" id="regPhone" placeholder="e.g. 072 123 4567" required></div>
 <div class="form-group"><label for="regPassword">Choose a Password</label><input type="password" id="regPassword" placeholder="Minimum 8 characters" required minlength="8"><div class="form-hint">Stored securely as a hash</div></div>
-<button type="submit" class="btn btn-primary btn-large btn-block"><i class="fas fa-user-plus"></i> Create Account</button>
+<button type="submit" id="regSubmitBtn" class="btn btn-primary btn-large btn-block"><i class="fas fa-user-plus"></i> Create Account</button>
 </form>
 </div>
 </div>
@@ -525,7 +531,7 @@ body{font-family:'Inter',sans-serif;background:#fafbfc;color:#1a2b3c;line-height
 <div class="admin-panel">
 <div class="admin-panel-header"><i class="fas fa-chart-line"></i><h3>System Statistics</h3></div>
 <p>Overview of platform activity and user metrics.</p>
-<div class="dash-stats" id="dashStats"></div>
+<div class="dash-stats" id="dashStats"><div class="dash-stat"><div class="ds-number">—</div><div class="ds-label">Loading...</div></div></div>
 <div style="margin-top:28px;">
 <h4 style="color:var(--gold-500);font-size:.95rem;margin-bottom:14px;"><i class="fas fa-clock"></i> Recent User Logins</h4>
 <div class="login-history-list" id="recentLogins"></div>
@@ -550,7 +556,7 @@ body{font-family:'Inter',sans-serif;background:#fafbfc;color:#1a2b3c;line-height
 <div class="user-table-wrap">
 <table class="user-table">
 <thead><tr><th>Full Name</th><th>Email</th><th>Phone</th><th>Registered</th><th>Status</th><th>Last Login</th><th>Total Logins</th><th>Actions</th></tr></thead>
-<tbody id="userTableBody"></tbody>
+<tbody id="userTableBody"><tr><td colspan="8" style="text-align:center;padding:30px;color:rgba(255,255,255,.4);">Loading users...</td></tr></tbody>
 </table>
 </div>
 <div id="adminStatus" class="admin-status"></div>
@@ -622,6 +628,7 @@ body{font-family:'Inter',sans-serif;background:#fafbfc;color:#1a2b3c;line-height
 <button class="admin-btn" onclick="adminAddQuizQuestion()"><i class="fas fa-plus"></i> Add Question</button>
 </div>
 </div>
+<div id="adminStatus" class="admin-status" style="margin-top:18px;"></div>
 </div>
 </div>
 
@@ -667,76 +674,82 @@ body{font-family:'Inter',sans-serif;background:#fafbfc;color:#1a2b3c;line-height
 </div>
 </div>
 </div>
-
 <script>
 // =====================================================================
-// EMAILJS CONFIGURATION — LIVE EMAIL SENDING
+// SUPABASE INITIALIZATION
+// =====================================================================
+const SUPABASE_URL = 'https://mtwqdvdcgphtrogxtlaa.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_HtIa-hzLpwkMapjbwzT46g_OrkkMyJX';
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// =====================================================================
+// EMAILJS CONFIGURATION
 // =====================================================================
 const EMAILJS_PUBLIC_KEY = 'U6DJnqlQn5113CXNS';
 const EMAILJS_SERVICE_ID = 'service_4scps5a';
 const EMAILJS_TEMPLATE_ID = 'template_s77wrvk';
 
-document.addEventListener('DOMContentLoaded', function() {
-  if (typeof emailjs !== 'undefined') {
-    emailjs.init(EMAILJS_PUBLIC_KEY);
-    console.log('✅ EmailJS initialized');
-  } else {
-    console.warn('⚠️ EmailJS library not loaded');
-  }
-});
-
 // =====================================================================
-// ADMIN CREDENTIALS
+// GLOBAL STATE
 // =====================================================================
 const ADMIN_CREDENTIALS = { username: 'southafrica', password: '123456' };
 let isAdminLoggedIn = false;
 let currentAdmin = null;
-
-// =====================================================================
-// CENTRAL DATABASE
-// =====================================================================
-const users = [];
-const loginHistory = [];
-const accountStatusHistory = [];
-const adminAuditLog = [];
-const courses = {};
-const issuedCertificates = [];
-
-let courseIdCounter = 0;
+let isUserLoggedIn = false;
+let currentUser = null;
+let currentStudentName = '';
 let currentCourseId = null;
 let currentCourse = null;
+let currentQuizQuestions = [];
 let quizPassed = false;
-let currentStudentName = '';
-let currentUser = null;
-let isUserLoggedIn = false;
+let cachedUsers = [];
+let cachedLoginHistory = [];
+let cachedCourses = [];
 
-let userIdCounter = 0;
-let loginHistoryIdCounter = 0;
-let statusHistoryIdCounter = 0;
-let auditLogIdCounter = 0;
+// =====================================================================
+// INITIALIZE ON PAGE LOAD
+// =====================================================================
+document.addEventListener('DOMContentLoaded', async function() {
+  // Initialize EmailJS
+  if (typeof emailjs !== 'undefined') {
+    try {
+      emailjs.init(EMAILJS_PUBLIC_KEY);
+      console.log('✅ EmailJS initialized');
+    } catch(e) {
+      console.error('EmailJS init failed:', e);
+    }
+  } else {
+    console.warn('⚠️ EmailJS library not loaded');
+  }
+
+  console.log('✅ Supabase initialized');
+  
+  // Load initial data from Supabase
+  await loadCourses();
+  await loadUsersCache();
+  await loadLoginHistoryCache();
+  
+  // Restore session
+  restoreSession();
+});
 
 // =====================================================================
 // HELPERS
 // =====================================================================
-function generateUserId() { return 'USR-' + String(++userIdCounter).padStart(6, '0'); }
-function generateSessionId() { return 'SESS-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9); }
-function generateUsername(name, surname) {
-  const base = (name.charAt(0) + surname).toLowerCase().replace(/[^a-z0-9]/g, '');
-  return base + Math.floor(1000 + Math.random() * 9000);
-}
-function generatePassword() {
-  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-  let pwd = '';
-  for (let i = 0; i < 10; i++) pwd += chars.charAt(Math.floor(Math.random() * chars.length));
-  return pwd;
-}
 function escapeHtml(str) {
-  if (!str) return '';
+  if (!str && str !== 0) return '';
   return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
-function formatDateTime(date) {
-  return date.toLocaleString('en-ZA', { year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+
+function formatDateTime(dateInput) {
+  if (!dateInput) return 'Never';
+  try {
+    const d = new Date(dateInput);
+    if (isNaN(d.getTime())) return 'Invalid date';
+    return d.toLocaleString('en-ZA', { year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+  } catch { return 'Invalid date'; }
 }
+
 function hashPassword(password) {
   let hash = 0;
   const combined = 'SA_YOUTH_SALT_2026' + password;
@@ -746,7 +759,12 @@ function hashPassword(password) {
   }
   return 'HASHED_' + Math.abs(hash).toString(36) + '_' + combined.length;
 }
+
 function verifyPassword(password, hash) { return hashPassword(password) === hash; }
+
+function generateSessionId() {
+  return 'SESS-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+}
 
 function detectDevice() {
   const ua = navigator.userAgent;
@@ -766,104 +784,273 @@ function detectDevice() {
   else if (/Firefox/i.test(ua)) browser = 'Mozilla Firefox';
   else if (/Safari/i.test(ua) && !/Chrome/i.test(ua)) browser = 'Safari';
   else if (/Opera|OPR/i.test(ua)) browser = 'Opera';
-  return { deviceType, os, browser, userAgent: ua, ipAddress: 'Simulated: 192.168.1.' + (Math.floor(Math.random() * 254) + 1) };
+  return {
+    deviceType, os, browser, userAgent: ua,
+    ipAddress: 'Client: ' + (Math.random() > 0.5 ? 'SA-' : 'ZA-') + Math.floor(Math.random() * 255)
+  };
 }
 
 function showToast(message, type = 'success') {
   const toast = document.getElementById('toast');
+  if (!toast) return;
   toast.className = 'toast ' + type;
   const icon = type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle';
-  toast.innerHTML = '<i class="fas ' + icon + '"></i><span>' + message + '</span>';
+  toast.innerHTML = '<i class="fas ' + icon + '"></i><span>' + escapeHtml(message) + '</span>';
   toast.classList.add('show');
   clearTimeout(toast._timer);
-  toast._timer = setTimeout(() => toast.classList.remove('show'), 4000);
+  toast._timer = setTimeout(() => toast.classList.remove('show'), 4500);
 }
 
 // =====================================================================
-// DATABASE OPERATIONS
+// SESSION MANAGEMENT (localStorage only for CURRENT logged-in user id)
 // =====================================================================
-function createUser(firstName, surname, email, phone, password) {
-  const user = {
-    id: generateUserId(), firstName, surname,
-    email: email.toLowerCase().trim(), phone,
-    passwordHash: hashPassword(password),
-    status: 'PENDING', role: 'user',
-    registeredAt: new Date().toISOString(),
-    approvedAt: null, approvedBy: null,
-    lastLogin: null, totalLogins: 0
+function saveSession(user) {
+  if (user) {
+    try {
+      localStorage.setItem('sa_youth_session', JSON.stringify({
+        userId: user.id,
+        email: user.email,
+        savedAt: Date.now()
+      }));
+    } catch(e) { console.warn('Session save failed', e); }
+  }
+}
+
+function clearSession() {
+  try { localStorage.removeItem('sa_youth_session'); } catch(e) {}
+}
+
+function restoreSession() {
+  try {
+    const raw = localStorage.getItem('sa_youth_session');
+    if (!raw) return;
+    const session = JSON.parse(raw);
+    // Session valid for 30 days
+    if (Date.now() - session.savedAt > 30 * 24 * 60 * 60 * 1000) {
+      clearSession();
+      return;
+    }
+    const user = cachedUsers.find(u => u.id === session.userId);
+    if (user && user.status === 'ACTIVE') {
+      isUserLoggedIn = true;
+      currentUser = user;
+      currentStudentName = user.first_name + ' ' + user.surname;
+      updateNavActions();
+      console.log('✅ Session restored for', user.email);
+    }
+  } catch(e) { console.warn('Session restore failed', e); }
+}
+
+// =====================================================================
+// SUPABASE — USERS
+// =====================================================================
+async function loadUsersCache() {
+  try {
+    const { data, error } = await supabaseClient
+      .from('users')
+      .select('*')
+      .order('registered_at', { ascending: false });
+    if (error) throw error;
+    cachedUsers = data || [];
+    console.log('✅ Loaded', cachedUsers.length, 'users from Supabase');
+  } catch (err) {
+    console.error('❌ Failed to load users:', err);
+    showToast('Could not load users from database.', 'error');
+    cachedUsers = [];
+  }
+}
+
+async function findUserByEmail(email) {
+  try {
+    const { data, error } = await supabaseClient
+      .from('users')
+      .select('*')
+      .eq('email', email.toLowerCase().trim())
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    console.error('findUserByEmail error:', err);
+    return null;
+  }
+}
+
+async function findUserById(id) {
+  const cached = cachedUsers.find(u => u.id === id);
+  if (cached) return cached;
+  try {
+    const { data, error } = await supabaseClient
+      .from('users')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    console.error('findUserById error:', err);
+    return null;
+  }
+}
+
+async function createUserInDb(firstName, surname, email, phone, password) {
+  const payload = {
+    first_name: firstName,
+    surname: surname,
+    email: email.toLowerCase().trim(),
+    phone: phone,
+    password_hash: hashPassword(password),
+    status: 'PENDING',
+    role: 'user',
+    total_logins: 0
   };
-  users.push(user);
-  recordStatusChange(user.id, 'NONE', 'PENDING', 'system', 'Account created', null);
-  return user;
+  const { data, error } = await supabaseClient
+    .from('users')
+    .insert(payload)
+    .select()
+    .single();
+  if (error) throw error;
+  await loadUsersCache();
+  return data;
 }
-function findUserByEmail(email) { return users.find(u => u.email === email.toLowerCase().trim()); }
-function findUserById(id) { return users.find(u => u.id === id); }
 
-function recordLogin(userId, email, status) {
+async function updateUserStatus(userId, newStatus, previousStatus, reason) {
+  const now = new Date().toISOString();
+  const updates = { status: newStatus };
+  if (newStatus === 'ACTIVE' && previousStatus !== 'ACTIVE') {
+    updates.approved_at = now;
+    updates.approved_by = currentAdmin ? currentAdmin.id : 'admin';
+  }
+  const { error } = await supabaseClient
+    .from('users')
+    .update(updates)
+    .eq('id', userId);
+  if (error) throw error;
+  
+  // Record status history
+  await supabaseClient.from('account_status_history').insert({
+    user_id: userId,
+    previous_status: previousStatus,
+    new_status: newStatus,
+    changed_by: currentAdmin ? currentAdmin.id : 'system',
+    reason: reason || 'Status updated',
+    ip_address: 'admin_portal'
+  });
+  
+  await loadUsersCache();
+}
+
+// =====================================================================
+// SUPABASE — LOGIN HISTORY
+// =====================================================================
+async function loadLoginHistoryCache() {
+  try {
+    const { data, error } = await supabaseClient
+      .from('login_history')
+      .select('*')
+      .order('login_timestamp', { ascending: false })
+      .limit(500);
+    if (error) throw error;
+    cachedLoginHistory = data || [];
+    console.log('✅ Loaded', cachedLoginHistory.length, 'login records');
+  } catch (err) {
+    console.error('❌ Failed to load login history:', err);
+    cachedLoginHistory = [];
+  }
+}
+
+async function recordLoginInDb(userId, email, status) {
   const device = detectDevice();
   const now = new Date();
-  const record = {
-    id: 'LH-' + String(++loginHistoryIdCounter).padStart(6, '0'),
-    userId, email,
-    loginTimestamp: now.toISOString(),
-    loginDate: now.toLocaleDateString('en-ZA'),
-    loginTime: now.toLocaleTimeString('en-ZA'),
-    ipAddress: device.ipAddress,
-    deviceType: device.deviceType,
-    os: device.os, browser: device.browser,
-    userAgent: device.userAgent,
+  const payload = {
+    user_id: userId,
+    email: email,
+    login_timestamp: now.toISOString(),
+    login_date: now.toLocaleDateString('en-ZA'),
+    login_time: now.toLocaleTimeString('en-ZA'),
+    ip_address: device.ipAddress,
+    device_type: device.deviceType,
+    os: device.os,
+    browser: device.browser,
+    user_agent: device.userAgent,
     status: status,
-    sessionId: status === 'SUCCESS' ? generateSessionId() : null,
-    logoutTimestamp: null,
-    createdAt: now.toISOString()
+    session_id: status === 'SUCCESS' ? generateSessionId() : null
   };
-  loginHistory.push(record);
-  return record;
-}
-
-function recordStatusChange(userId, previousStatus, newStatus, changedBy, reason, ipAddress) {
-  const now = new Date();
-  accountStatusHistory.push({
-    id: 'SH-' + String(++statusHistoryIdCounter).padStart(6, '0'),
-    userId, previousStatus, newStatus, changedBy,
-    date: now.toLocaleDateString('en-ZA'),
-    time: now.toLocaleTimeString('en-ZA'),
-    reason, ipAddress: ipAddress || 'Admin portal'
-  });
-}
-
-function recordAdminAction(adminId, action, targetUserId, details) {
-  const device = detectDevice();
-  const now = new Date();
-  adminAuditLog.push({
-    id: 'AL-' + String(++auditLogIdCounter).padStart(6, '0'),
-    adminId, action, targetUserId,
-    date: now.toLocaleDateString('en-ZA'),
-    time: now.toLocaleTimeString('en-ZA'),
-    ipAddress: device.ipAddress,
-    details: details || ''
-  });
+  try {
+    const { data, error } = await supabaseClient
+      .from('login_history')
+      .insert(payload)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    console.error('recordLogin failed:', err);
+    return null;
+  }
 }
 
 // =====================================================================
-// EMAIL SENDING (LIVE via EmailJS)
+// SUPABASE — ADMIN AUDIT
+// =====================================================================
+async function recordAdminAction(action, targetUserId, details) {
+  try {
+    await supabaseClient.from('admin_audit_log').insert({
+      admin_id: currentAdmin ? currentAdmin.id : 'unknown',
+      action: action,
+      target_user_id: targetUserId || null,
+      details: details || ''
+    });
+  } catch (err) {
+    console.warn('Audit log failed:', err);
+  }
+}
+
+// =====================================================================
+// SUPABASE — COURSES
+// =====================================================================
+async function loadCourses() {
+  try {
+    const { data, error } = await supabaseClient
+      .from('courses')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    cachedCourses = data || [];
+    console.log('✅ Loaded', cachedCourses.length, 'courses');
+    renderCourseGrid();
+  } catch (err) {
+    console.error('❌ Failed to load courses:', err);
+    cachedCourses = [];
+    renderCourseGrid();
+  }
+}
+
+// =====================================================================
+// EMAIL SENDING via EmailJS
 // =====================================================================
 async function sendApprovalEmail(user) {
+  if (typeof emailjs === 'undefined') {
+    console.error('❌ EmailJS not loaded');
+    return { success: false, error: 'EmailJS library not loaded' };
+  }
+
   const loginUrl = window.location.href.split('#')[0];
+
   const templateParams = {
-    to_name: (user.firstName || user.name || '') + ' ' + (user.surname || ''),
+    to_name: (user.first_name || user.firstName || '') + ' ' + (user.surname || ''),
     to_email: user.email,
-    first_name: user.firstName || user.name || '',
+    first_name: user.first_name || user.firstName || '',
     surname: user.surname || '',
     email: user.email,
-    username: user.username || 'N/A',
-    password: user.password || 'N/A',
+    username: user.email,
+    password: '(Use the password you chose at registration)',
     login_url: loginUrl,
     user_id: user.id,
     status: (user.status || 'ACTIVE').toUpperCase(),
     approved_by: currentAdmin ? currentAdmin.id : 'Administrator',
     approved_at: new Date().toLocaleString('en-ZA')
   };
+
   try {
     const response = await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams);
     console.log('✅ Email sent to', user.email, response);
@@ -873,13 +1060,13 @@ async function sendApprovalEmail(user) {
     return { success: false, error: (error && (error.text || error.message)) || 'Unknown error' };
   }
 }
-async function sendCredentialsEmail(reg) { return sendApprovalEmail(reg); }
 
 // =====================================================================
-// USER REGISTRATION
+// REGISTRATION
 // =====================================================================
 async function handleRegistration(e) {
   e.preventDefault();
+  const btn = document.getElementById('regSubmitBtn');
   const firstName = document.getElementById('regName').value.trim();
   const surname = document.getElementById('regSurname').value.trim();
   const email = document.getElementById('regEmail').value.trim().toLowerCase();
@@ -894,26 +1081,36 @@ async function handleRegistration(e) {
     showToast('Password must be at least 8 characters.', 'error');
     return;
   }
-  if (findUserByEmail(email)) {
-    showToast('An account with this email already exists.', 'error');
-    return;
-  }
 
-  const user = createUser(firstName, surname, email, phone, password);
-  user.username = user.email;
-  user.password = password;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="loading-spinner"></span> Creating account...';
 
-  showToast('Registration submitted. Your account is pending admin approval.', 'success');
-
-  // Send confirmation email to new user
   try {
-    await sendApprovalEmail({ ...user, status: 'PENDING' });
-  } catch (err) {
-    console.warn('Registration email failed:', err);
-  }
+    // Check duplicate
+    const existing = await findUserByEmail(email);
+    if (existing) {
+      showToast('An account with this email already exists.', 'error');
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-user-plus"></i> Create Account';
+      return;
+    }
 
-  document.getElementById('registrationForm').reset();
-  if (isAdminLoggedIn) { renderUserTable(); renderDashboard(); }
+    const user = await createUserInDb(firstName, surname, email, phone, password);
+    console.log('✅ User created:', user.id);
+
+    showToast('Registration submitted. Check your email for confirmation.', 'success');
+    document.getElementById('registrationForm').reset();
+    
+    // Send pending confirmation email in background (do not block)
+    sendApprovalEmail({ ...user, status: 'PENDING' }).catch(err => console.warn('Pending email failed:', err));
+    
+  } catch (err) {
+    console.error('❌ Registration failed:', err);
+    showToast('Registration failed: ' + (err.message || 'Unknown error'), 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-user-plus"></i> Create Account';
+  }
 }
 
 // =====================================================================
@@ -925,9 +1122,11 @@ function openUserLogin() {
   document.getElementById('userLoginEmail').value = '';
   document.getElementById('userLoginPassword').value = '';
 }
-function closeUserLogin() { document.getElementById('userLoginOverlay').classList.remove('active'); }
+function closeUserLogin() {
+  document.getElementById('userLoginOverlay').classList.remove('active');
+}
 
-function attemptUserLogin() {
+async function attemptUserLogin() {
   const email = document.getElementById('userLoginEmail').value.trim().toLowerCase();
   const password = document.getElementById('userLoginPassword').value;
   const errorEl = document.getElementById('userLoginError');
@@ -937,64 +1136,68 @@ function attemptUserLogin() {
     errorEl.classList.add('show');
     return;
   }
-  const user = findUserByEmail(email);
+
+  // Refresh users cache to get latest data
+  await loadUsersCache();
+  const user = await findUserByEmail(email);
 
   if (!user) {
-    recordLogin('UNKNOWN', email, 'FAILED');
+    await recordLoginInDb(null, email, 'FAILED');
     errorEl.textContent = 'No account found with this email.';
     errorEl.classList.add('show');
     return;
   }
-  if (!verifyPassword(password, user.passwordHash)) {
-    recordLogin(user.id, email, 'FAILED');
-    errorEl.textContent = 'Incorrect password.';
+
+  if (!verifyPassword(password, user.password_hash)) {
+    await recordLoginInDb(user.id, email, 'FAILED');
+    errorEl.textContent = 'Incorrect password. Please try again.';
     errorEl.classList.add('show');
     return;
   }
+
   if (user.status === 'PENDING') {
-    recordLogin(user.id, email, 'FAILED');
-    errorEl.textContent = 'Your account is pending admin approval.';
+    await recordLoginInDb(user.id, email, 'FAILED');
+    errorEl.textContent = 'Your account is pending admin approval. Please wait for approval email.';
     errorEl.classList.add('show');
     return;
   }
   if (user.status === 'DEACTIVATED') {
-    recordLogin(user.id, email, 'FAILED');
+    await recordLoginInDb(user.id, email, 'FAILED');
     errorEl.textContent = 'Your account has been deactivated. Please contact the administrator.';
     errorEl.classList.add('show');
     return;
   }
   if (user.status !== 'ACTIVE') {
-    recordLogin(user.id, email, 'FAILED');
+    await recordLoginInDb(user.id, email, 'FAILED');
     errorEl.textContent = 'Your account is not currently active.';
     errorEl.classList.add('show');
     return;
   }
 
-  recordLogin(user.id, email, 'SUCCESS');
-  user.lastLogin = new Date().toISOString();
-  user.totalLogins = (user.totalLogins || 0) + 1;
+  // SUCCESS
+  await recordLoginInDb(user.id, email, 'SUCCESS');
+  await supabaseClient
+    .from('users')
+    .update({ last_login: new Date().toISOString(), total_logins: (user.total_logins || 0) + 1 })
+    .eq('id', user.id);
+  await loadUsersCache();
 
   isUserLoggedIn = true;
-  currentUser = user;
-  currentStudentName = user.firstName + ' ' + user.surname;
+  currentUser = cachedUsers.find(u => u.id === user.id) || user;
+  currentStudentName = currentUser.first_name + ' ' + currentUser.surname;
 
+  saveSession(currentUser);
   closeUserLogin();
   updateNavActions();
   renderCourseGrid();
-  showToast('Welcome back, ' + user.firstName + '!', 'success');
-
-  if (isAdminLoggedIn) { renderUserTable(); renderDashboard(); }
+  showToast('Welcome back, ' + currentUser.first_name + '!', 'success');
 }
 
 function logoutUser() {
-  if (currentUser) {
-    const sessions = loginHistory.filter(lh => lh.userId === currentUser.id && lh.status === 'SUCCESS' && !lh.logoutTimestamp)
-      .sort((a, b) => new Date(b.loginTimestamp) - new Date(a.loginTimestamp));
-    if (sessions.length > 0) sessions[0].logoutTimestamp = new Date().toISOString();
-  }
   isUserLoggedIn = false;
   currentUser = null;
   currentStudentName = '';
+  clearSession();
   updateNavActions();
   renderCourseGrid();
   showToast('You have been logged out.', 'info');
@@ -1002,8 +1205,9 @@ function logoutUser() {
 
 function updateNavActions() {
   const navActions = document.getElementById('navActions');
+  if (!navActions) return;
   if (isUserLoggedIn && currentUser) {
-    navActions.innerHTML = '<span class="user-badge"><i class="fas fa-user-circle"></i> ' + escapeHtml(currentUser.firstName) + ' ' + escapeHtml(currentUser.surname) + '</span><button class="btn btn-secondary" onclick="logoutUser()"><i class="fas fa-sign-out-alt"></i> Logout</button>';
+    navActions.innerHTML = '<span class="user-badge"><i class="fas fa-user-circle"></i> ' + escapeHtml(currentUser.first_name) + ' ' + escapeHtml(currentUser.surname) + '</span><button class="btn btn-secondary" onclick="logoutUser()"><i class="fas fa-sign-out-alt"></i> Logout</button>';
   } else {
     navActions.innerHTML = '<button class="btn btn-secondary" onclick="openUserLogin()"><i class="fas fa-sign-in-alt"></i> Login</button><a href="#register" class="btn btn-primary"><i class="fas fa-user-plus"></i> Register</a>';
   }
@@ -1014,29 +1218,33 @@ function updateNavActions() {
 // =====================================================================
 function renderCourseGrid() {
   const grid = document.getElementById('courseGrid');
+  if (!grid) return;
   const subtitle = document.getElementById('coursesSubtitle');
-  const ids = Object.keys(courses);
-  if (!ids.length) {
+
+  if (!cachedCourses.length) {
     grid.innerHTML = '<div class="empty-state"><i class="fas fa-book-open"></i><h3>No Courses Available Yet</h3><p>Courses will appear here once added by an administrator.</p></div>';
     return;
   }
-  subtitle.textContent = isUserLoggedIn ? 'You are logged in. Click any course to start learning.' : 'Register and get approved to access all courses.';
-  grid.innerHTML = ids.map(id => {
-    const c = courses[id];
-    const imageStyle = c.image ? "background-image: url('" + c.image + "');" : 'background: linear-gradient(135deg, var(--navy-700), var(--teal-600));';
+
+  if (subtitle) {
+    subtitle.textContent = isUserLoggedIn ? 'You are logged in. Click any course to start learning.' : 'Register and get approved to access all courses.';
+  }
+
+  grid.innerHTML = cachedCourses.map(c => {
+    const imageStyle = c.image_url ? "background-image: url('" + escapeHtml(c.image_url) + "');" : 'background: linear-gradient(135deg, var(--navy-700), var(--teal-600));';
     const iconClass = c.icon || 'fa-book';
     const lockedBadge = !isUserLoggedIn ? '<span class="locked-badge" style="display:inline-flex;align-items:center;gap:6px;background:var(--warning-bg);color:var(--warning);font-size:.72rem;font-weight:700;padding:4px 10px;border-radius:6px;text-transform:uppercase;margin-bottom:12px;"><i class="fas fa-lock"></i> Login Required</span>' : '';
-    return '<div class="course-card"><div class="course-image" style="' + imageStyle + '"><div class="course-icon-badge"><i class="fas ' + iconClass + '"></i></div></div><div class="course-content">' + lockedBadge + '<h3>' + escapeHtml(c.title) + '</h3><div class="course-meta"><span><i class="fas fa-tag"></i> ' + escapeHtml(c.category || 'General') + '</span><span><i class="far fa-clock"></i> ' + escapeHtml(c.duration || 'Self-paced') + '</span></div><p class="course-desc">' + escapeHtml(c.description || '') + '</p><button class="btn btn-primary btn-block" onclick="handleCourseClick(\'' + id + '\')">' + (isUserLoggedIn ? 'Start Learning' : 'Login to Access') + ' <i class="fas fa-arrow-right"></i></button></div></div>';
+    return '<div class="course-card"><div class="course-image" style="' + imageStyle + '"><div class="course-icon-badge"><i class="fas ' + iconClass + '"></i></div></div><div class="course-content">' + lockedBadge + '<h3>' + escapeHtml(c.title) + '</h3><div class="course-meta"><span><i class="fas fa-tag"></i> ' + escapeHtml(c.category || 'General') + '</span><span><i class="far fa-clock"></i> ' + escapeHtml(c.duration || 'Self-paced') + '</span></div><p class="course-desc">' + escapeHtml(c.description || '') + '</p><button class="btn btn-primary btn-block" onclick="handleCourseClick(\'' + c.id + '\')">' + (isUserLoggedIn ? 'Start Learning' : 'Login to Access') + ' <i class="fas fa-arrow-right"></i></button></div></div>';
   }).join('');
 }
 
-function handleCourseClick(courseId) {
+async function handleCourseClick(courseId) {
   if (!isUserLoggedIn) {
-    showToast('Please log in with your approved credentials.', 'info');
+    showToast('Please log in to access this course.', 'info');
     openUserLogin();
     return;
   }
-  openCourse(courseId);
+  await openCourse(courseId);
 }
 
 // =====================================================================
@@ -1049,8 +1257,9 @@ function openAdminLogin() {
   document.getElementById('adminUsername').value = '';
   document.getElementById('adminPassword').value = '';
 }
-function closeAdminLogin() { document.getElementById('adminLoginOverlay').classList.remove('active'); }
-
+function closeAdminLogin() {
+  document.getElementById('adminLoginOverlay').classList.remove('active');
+}
 function attemptAdminLogin() {
   const u = document.getElementById('adminUsername').value.trim();
   const p = document.getElementById('adminPassword').value.trim();
@@ -1059,7 +1268,7 @@ function attemptAdminLogin() {
     currentAdmin = { id: 'ADMIN-001', username: u };
     closeAdminLogin();
     updateAdminTab();
-    recordAdminAction(currentAdmin.id, 'ADMIN_LOGIN', null, 'Administrator logged in');
+    recordAdminAction('ADMIN_LOGIN', null, 'Administrator logged in');
     showToast('Administrator access granted.', 'success');
     openAdminDashboard();
   } else {
@@ -1072,6 +1281,7 @@ function updateAdminTab() {
   const btn = document.getElementById('adminTabBtn');
   const btnText = document.getElementById('adminTabBtnText');
   const statusText = document.getElementById('adminTabStatusText');
+  if (!btn) return;
   if (isAdminLoggedIn) {
     btn.classList.add('logged-in');
     btnText.textContent = 'Open Dashboard';
@@ -1086,10 +1296,14 @@ function updateAdminTab() {
 // =====================================================================
 // ADMIN DASHBOARD
 // =====================================================================
-function openAdminDashboard() {
+async function openAdminDashboard() {
   if (!isAdminLoggedIn) { openAdminLogin(); return; }
   document.getElementById('adminDashboard').classList.add('active');
   document.body.style.overflow = 'hidden';
+  
+  await loadUsersCache();
+  await loadLoginHistoryCache();
+  
   renderDashboard();
   renderUserTable();
   renderLoginHistory();
@@ -1110,64 +1324,75 @@ function switchAdminTab(tabBtn, tabId) {
   if (tabId === 'adm-dashboard') renderDashboard();
   if (tabId === 'adm-users') renderUserTable();
   if (tabId === 'adm-login-history') renderLoginHistory();
+  if (tabId === 'adm-certificates') refreshIssuedCerts();
 }
 
 function renderDashboard() {
-  const totalUsers = users.length;
-  const pendingUsers = users.filter(u => u.status === 'PENDING').length;
-  const activeUsers = users.filter(u => u.status === 'ACTIVE').length;
-  const deactivatedUsers = users.filter(u => u.status === 'DEACTIVATED').length;
-  const totalLoginEvents = loginHistory.filter(lh => lh.status === 'SUCCESS').length;
+  const totalUsers = cachedUsers.length;
+  const pendingUsers = cachedUsers.filter(u => u.status === 'PENDING').length;
+  const activeUsers = cachedUsers.filter(u => u.status === 'ACTIVE').length;
+  const deactivatedUsers = cachedUsers.filter(u => u.status === 'DEACTIVATED').length;
+  const totalLoginEvents = cachedLoginHistory.filter(lh => lh.status === 'SUCCESS').length;
+
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const weekStart = new Date(todayStart); weekStart.setDate(weekStart.getDate() - 7);
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const loginsToday = loginHistory.filter(lh => lh.status === 'SUCCESS' && new Date(lh.loginTimestamp) >= todayStart).length;
-  const loginsThisWeek = loginHistory.filter(lh => lh.status === 'SUCCESS' && new Date(lh.loginTimestamp) >= weekStart).length;
-  const loginsThisMonth = loginHistory.filter(lh => lh.status === 'SUCCESS' && new Date(lh.loginTimestamp) >= monthStart).length;
 
-  document.getElementById('dashStats').innerHTML =
-    '<div class="dash-stat"><div class="ds-number">' + totalUsers + '</div><div class="ds-label">Total Users</div></div>' +
-    '<div class="dash-stat"><div class="ds-number">' + pendingUsers + '</div><div class="ds-label">Pending</div></div>' +
-    '<div class="dash-stat"><div class="ds-number">' + activeUsers + '</div><div class="ds-label">Active</div></div>' +
-    '<div class="dash-stat"><div class="ds-number">' + deactivatedUsers + '</div><div class="ds-label">Deactivated</div></div>' +
-    '<div class="dash-stat"><div class="ds-number">' + totalLoginEvents + '</div><div class="ds-label">Total Logins</div></div>' +
-    '<div class="dash-stat"><div class="ds-number">' + loginsToday + '</div><div class="ds-label">Today</div></div>' +
-    '<div class="dash-stat"><div class="ds-number">' + loginsThisWeek + '</div><div class="ds-label">This Week</div></div>' +
-    '<div class="dash-stat"><div class="ds-number">' + loginsThisMonth + '</div><div class="ds-label">This Month</div></div>';
+  const loginsToday = cachedLoginHistory.filter(lh => lh.status === 'SUCCESS' && new Date(lh.login_timestamp) >= todayStart).length;
+  const loginsThisWeek = cachedLoginHistory.filter(lh => lh.status === 'SUCCESS' && new Date(lh.login_timestamp) >= weekStart).length;
+  const loginsThisMonth = cachedLoginHistory.filter(lh => lh.status === 'SUCCESS' && new Date(lh.login_timestamp) >= monthStart).length;
 
-  const recent = [...loginHistory].filter(lh => lh.status === 'SUCCESS').sort((a, b) => new Date(b.loginTimestamp) - new Date(a.loginTimestamp)).slice(0, 5);
+  const el = document.getElementById('dashStats');
+  if (el) {
+    el.innerHTML =
+      '<div class="dash-stat"><div class="ds-number">' + totalUsers + '</div><div class="ds-label">Total Users</div></div>' +
+      '<div class="dash-stat"><div class="ds-number">' + pendingUsers + '</div><div class="ds-label">Pending</div></div>' +
+      '<div class="dash-stat"><div class="ds-number">' + activeUsers + '</div><div class="ds-label">Active</div></div>' +
+      '<div class="dash-stat"><div class="ds-number">' + deactivatedUsers + '</div><div class="ds-label">Deactivated</div></div>' +
+      '<div class="dash-stat"><div class="ds-number">' + totalLoginEvents + '</div><div class="ds-label">Total Logins</div></div>' +
+      '<div class="dash-stat"><div class="ds-number">' + loginsToday + '</div><div class="ds-label">Today</div></div>' +
+      '<div class="dash-stat"><div class="ds-number">' + loginsThisWeek + '</div><div class="ds-label">This Week</div></div>' +
+      '<div class="dash-stat"><div class="ds-number">' + loginsThisMonth + '</div><div class="ds-label">This Month</div></div>';
+  }
+
+  const recent = cachedLoginHistory.filter(lh => lh.status === 'SUCCESS').slice(0, 5);
   const recentEl = document.getElementById('recentLogins');
-  if (!recent.length) {
-    recentEl.innerHTML = '<p style="color:rgba(255,255,255,.4);font-size:.82rem;">No logins recorded yet.</p>';
-  } else {
-    recentEl.innerHTML = recent.map(lh => {
-      const user = findUserById(lh.userId);
-      const name = user ? user.firstName + ' ' + user.surname : lh.email;
-      return '<div class="login-history-item"><div class="login-history-icon"><i class="fas fa-sign-in-alt"></i></div><div class="login-history-body"><h5>' + escapeHtml(name) + ' <span class="lh-status success">Success</span></h5><div class="lh-meta"><strong>' + lh.loginDate + '</strong> at <strong>' + lh.loginTime + '</strong> · ' + escapeHtml(lh.deviceType) + ' · ' + escapeHtml(lh.os) + ' · ' + escapeHtml(lh.browser) + '</div></div></div>';
-    }).join('');
+  if (recentEl) {
+    if (!recent.length) {
+      recentEl.innerHTML = '<p style="color:rgba(255,255,255,.4);font-size:.82rem;">No logins recorded yet.</p>';
+    } else {
+      recentEl.innerHTML = recent.map(lh => {
+        const user = cachedUsers.find(u => u.id === lh.user_id);
+        const name = user ? user.first_name + ' ' + user.surname : lh.email;
+        return '<div class="login-history-item"><div class="login-history-icon"><i class="fas fa-sign-in-alt"></i></div><div class="login-history-body"><h5>' + escapeHtml(name) + ' <span class="lh-status success">Success</span></h5><div class="lh-meta"><strong>' + (lh.login_date || '') + '</strong> at <strong>' + (lh.login_time || '') + '</strong> · ' + escapeHtml(lh.device_type || '') + ' · ' + escapeHtml(lh.os || '') + ' · ' + escapeHtml(lh.browser || '') + '</div></div></div>';
+      }).join('');
+    }
   }
 }
 
 // =====================================================================
-// USER MANAGEMENT
+// USER MANAGEMENT TABLE
 // =====================================================================
 function renderUserTable() {
   const tbody = document.getElementById('userTableBody');
-  const search = (document.getElementById('userSearchInput').value || '').toLowerCase();
-  const statusFilter = document.getElementById('userStatusFilter').value;
-  let filtered = [...users];
-  if (search) filtered = filtered.filter(u => (u.firstName + ' ' + u.surname).toLowerCase().includes(search) || u.email.toLowerCase().includes(search));
+  if (!tbody) return;
+  const search = (document.getElementById('userSearchInput')?.value || '').toLowerCase();
+  const statusFilter = document.getElementById('userStatusFilter')?.value || '';
+
+  let filtered = [...cachedUsers];
+  if (search) filtered = filtered.filter(u => (u.first_name + ' ' + u.surname).toLowerCase().includes(search) || u.email.toLowerCase().includes(search));
   if (statusFilter) filtered = filtered.filter(u => u.status === statusFilter);
 
   if (!filtered.length) {
     tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:rgba(255,255,255,.4);">No users match your filters.</td></tr>';
     return;
   }
+
   tbody.innerHTML = filtered.map(u => {
-    const registered = formatDateTime(new Date(u.registeredAt));
-    const lastLogin = u.lastLogin ? formatDateTime(new Date(u.lastLogin)) : 'Never';
-    const statusClass = u.status.toLowerCase();
+    const registered = formatDateTime(u.registered_at);
+    const lastLogin = u.last_login ? formatDateTime(u.last_login) : 'Never';
+    const statusClass = (u.status || '').toLowerCase();
     let actions = '';
     if (u.status === 'PENDING') {
       actions = '<button class="tbl-btn-approve" onclick="adminApproveUser(\'' + u.id + '\')"><i class="fas fa-check"></i> Approve</button><button class="tbl-btn-view" onclick="viewUserProfile(\'' + u.id + '\')"><i class="fas fa-eye"></i> View</button>';
@@ -1178,135 +1403,187 @@ function renderUserTable() {
     } else {
       actions = '<button class="tbl-btn-view" onclick="viewUserProfile(\'' + u.id + '\')"><i class="fas fa-eye"></i> View</button>';
     }
-    return '<tr><td><strong style="color:white;">' + escapeHtml(u.firstName) + ' ' + escapeHtml(u.surname) + '</strong></td><td>' + escapeHtml(u.email) + '</td><td>' + escapeHtml(u.phone) + '</td><td>' + registered + '</td><td><span class="status-pill ' + statusClass + '">' + u.status + '</span></td><td>' + lastLogin + '</td><td>' + (u.totalLogins || 0) + '</td><td><div class="table-actions">' + actions + '</div></td></tr>';
+    return '<tr><td><strong style="color:white;">' + escapeHtml(u.first_name) + ' ' + escapeHtml(u.surname) + '</strong></td><td>' + escapeHtml(u.email) + '</td><td>' + escapeHtml(u.phone) + '</td><td>' + registered + '</td><td><span class="status-pill ' + statusClass + '">' + u.status + '</span></td><td>' + lastLogin + '</td><td>' + (u.total_logins || 0) + '</td><td><div class="table-actions">' + actions + '</div></td></tr>';
   }).join('');
 }
 
+// =====================================================================
+// ADMIN USER ACTIONS
+// =====================================================================
 async function adminApproveUser(userId) {
-  const user = findUserById(userId);
+  const user = cachedUsers.find(u => u.id === userId);
   if (!user) return;
+
   const previousStatus = user.status;
-  user.status = 'ACTIVE';
-  user.approvedAt = new Date().toISOString();
-  user.approvedBy = currentAdmin.id;
-  user.username = user.email;
-  user.password = '(set by user at registration)';
+  showAdminStatus('Approving ' + user.first_name + ' ' + user.surname + ' — sending email...', true);
 
-  recordStatusChange(user.id, previousStatus, 'ACTIVE', currentAdmin.id, 'Account approved', 'Admin portal');
-  recordAdminAction(currentAdmin.id, 'USER_APPROVED', user.id, 'Approved ' + user.email);
+  try {
+    await updateUserStatus(userId, 'ACTIVE', previousStatus, 'Account approved');
+    await recordAdminAction('USER_APPROVED', userId, 'Approved ' + user.email);
 
-  showAdminStatus('Approving ' + user.firstName + ' ' + user.surname + ' — sending email...', true);
+    const updatedUser = cachedUsers.find(u => u.id === userId);
+    const result = await sendApprovalEmail(updatedUser);
 
-  const result = await sendApprovalEmail(user);
-
-  if (result.success) {
-    showAdminStatus('✅ User approved. Email sent to ' + user.email, true);
-    showToast('Approved. Email sent to ' + user.email, 'success');
-  } else {
-    showAdminStatus('✅ Approved, but email failed: ' + result.error + '. Use Resend to retry.', false);
-    showToast('Approved, but email failed.', 'error');
+    if (result.success) {
+      showAdminStatus('✅ User approved. Email sent to ' + user.email, true);
+      showToast('Approved. Email sent.', 'success');
+    } else {
+      showAdminStatus('✅ Approved, but email failed: ' + result.error, false);
+      showToast('Approved, but email failed.', 'error');
+    }
+  } catch (err) {
+    console.error('Approve error:', err);
+    showAdminStatus('❌ Approval failed: ' + err.message, false);
   }
 
   renderUserTable();
   renderDashboard();
 }
 
-function adminDeactivateUser(userId) {
-  const user = findUserById(userId);
+async function adminDeactivateUser(userId) {
+  const user = cachedUsers.find(u => u.id === userId);
   if (!user) return;
-  if (!confirm('Deactivate ' + user.firstName + ' ' + user.surname + '?')) return;
-  const previousStatus = user.status;
-  user.status = 'DEACTIVATED';
-  recordStatusChange(user.id, previousStatus, 'DEACTIVATED', currentAdmin.id, 'Account deactivated', 'Admin portal');
-  recordAdminAction(currentAdmin.id, 'USER_DEACTIVATED', user.id, 'Deactivated ' + user.email);
-  if (currentUser && currentUser.id === user.id) { logoutUser(); showToast('Your account has been deactivated. Please contact the administrator.', 'error'); }
-  showAdminStatus('User ' + user.firstName + ' ' + user.surname + ' deactivated.', true);
-  showToast('User deactivated.', 'info');
-  renderUserTable();
-  renderDashboard();
+  if (!confirm('Deactivate ' + user.first_name + ' ' + user.surname + '?')) return;
+
+  try {
+    await updateUserStatus(userId, 'DEACTIVATED', user.status, 'Account deactivated');
+    await recordAdminAction('USER_DEACTIVATED', userId, 'Deactivated ' + user.email);
+    
+    if (currentUser && currentUser.id === userId) {
+      logoutUser();
+      showToast('Your account has been deactivated. Please contact the administrator.', 'error');
+    }
+    
+    showAdminStatus('User ' + user.first_name + ' deactivated.', true);
+    showToast('User deactivated.', 'info');
+    renderUserTable();
+    renderDashboard();
+  } catch (err) {
+    showAdminStatus('❌ Failed: ' + err.message, false);
+  }
 }
 
-function adminReactivateUser(userId) {
-  const user = findUserById(userId);
+async function adminReactivateUser(userId) {
+  const user = cachedUsers.find(u => u.id === userId);
   if (!user) return;
-  const previousStatus = user.status;
-  user.status = 'ACTIVE';
-  recordStatusChange(user.id, previousStatus, 'ACTIVE', currentAdmin.id, 'Account reactivated', 'Admin portal');
-  recordAdminAction(currentAdmin.id, 'USER_REACTIVATED', user.id, 'Reactivated ' + user.email);
-  showAdminStatus('User ' + user.firstName + ' ' + user.surname + ' reactivated.', true);
-  showToast('User reactivated.', 'success');
-  renderUserTable();
-  renderDashboard();
+
+  try {
+    await updateUserStatus(userId, 'ACTIVE', user.status, 'Account reactivated');
+    await recordAdminAction('USER_REACTIVATED', userId, 'Reactivated ' + user.email);
+    showAdminStatus('User ' + user.first_name + ' reactivated.', true);
+    showToast('User reactivated.', 'success');
+    renderUserTable();
+    renderDashboard();
+  } catch (err) {
+    showAdminStatus('❌ Failed: ' + err.message, false);
+  }
 }
 
 async function resendCredentials(userId) {
-  const user = findUserById(userId);
+  const user = cachedUsers.find(u => u.id === userId);
   if (!user) return;
   showAdminStatus('Resending email to ' + user.email + '...', true);
   const result = await sendApprovalEmail(user);
   if (result.success) {
-    recordAdminAction(currentAdmin.id, 'EMAIL_RESENT', user.id, 'Email resent to ' + user.email);
-    showAdminStatus('✅ Email resent to ' + user.email, true);
-    showToast('Email resent successfully.', 'success');
+    await recordAdminAction('EMAIL_RESENT', userId, 'Email resent to ' + user.email);
+    showAdminStatus('✅ Email resent.', true);
+    showToast('Email resent.', 'success');
   } else {
     showAdminStatus('❌ Email failed: ' + result.error, false);
-    showToast('Email failed.', 'error');
   }
 }
 
+function showAdminStatus(message, success) {
+  const status = document.getElementById('adminStatus');
+  if (!status) return;
+  status.textContent = message;
+  status.className = 'admin-status ' + (success ? 'success' : 'error');
+  status.style.display = 'block';
+  clearTimeout(status._timer);
+  status._timer = setTimeout(() => status.style.display = 'none', 5000);
+}
+
+function showCertStatus(message, success) {
+  const status = document.getElementById('adminCertStatus');
+  if (!status) return;
+  status.textContent = message;
+  status.className = 'admin-status ' + (success ? 'success' : 'error');
+  status.style.display = 'block';
+  clearTimeout(status._timer);
+  status._timer = setTimeout(() => status.style.display = 'none', 5000);
+}
+
 // =====================================================================
-// USER PROFILE VIEW
+// USER PROFILE
 // =====================================================================
-function viewUserProfile(userId) {
-  const user = findUserById(userId);
+async function viewUserProfile(userId) {
+  const user = cachedUsers.find(u => u.id === userId);
   if (!user) return;
-  recordAdminAction(currentAdmin.id, 'PROFILE_VIEWED', user.id, 'Viewed profile of ' + user.email);
+
+  await recordAdminAction('PROFILE_VIEWED', userId, 'Viewed ' + user.email);
+
+  const statusHistory = await supabaseClient
+    .from('account_status_history')
+    .select('*')
+    .eq('user_id', userId)
+    .order('changed_at', { ascending: false });
+
   document.getElementById('userProfileContent').innerHTML =
-    '<div class="admin-panel-header"><i class="fas fa-user-circle"></i><h3>' + escapeHtml(user.firstName) + ' ' + escapeHtml(user.surname) + '</h3></div>' +
+    '<div class="admin-panel-header"><i class="fas fa-user-circle"></i><h3>' + escapeHtml(user.first_name) + ' ' + escapeHtml(user.surname) + '</h3></div>' +
     '<p>Permanent User ID: <strong style="color:var(--gold-500);font-family:monospace;">' + escapeHtml(user.id) + '</strong></p>' +
     '<div class="profile-grid">' +
-      '<div class="profile-field"><div class="pf-label">First Name</div><div class="pf-value">' + escapeHtml(user.firstName) + '</div></div>' +
+      '<div class="profile-field"><div class="pf-label">First Name</div><div class="pf-value">' + escapeHtml(user.first_name) + '</div></div>' +
       '<div class="profile-field"><div class="pf-label">Surname</div><div class="pf-value">' + escapeHtml(user.surname) + '</div></div>' +
       '<div class="profile-field"><div class="pf-label">Email</div><div class="pf-value">' + escapeHtml(user.email) + '</div></div>' +
       '<div class="profile-field"><div class="pf-label">Phone</div><div class="pf-value">' + escapeHtml(user.phone) + '</div></div>' +
-      '<div class="profile-field"><div class="pf-label">Status</div><div class="pf-value"><span class="status-pill ' + user.status.toLowerCase() + '">' + user.status + '</span></div></div>' +
-      '<div class="profile-field"><div class="pf-label">Registered</div><div class="pf-value">' + formatDateTime(new Date(user.registeredAt)) + '</div></div>' +
-      '<div class="profile-field"><div class="pf-label">Approved</div><div class="pf-value">' + (user.approvedAt ? formatDateTime(new Date(user.approvedAt)) : 'Not yet') + '</div></div>' +
-      '<div class="profile-field"><div class="pf-label">Last Login</div><div class="pf-value">' + (user.lastLogin ? formatDateTime(new Date(user.lastLogin)) : 'Never') + '</div></div>' +
-      '<div class="profile-field"><div class="pf-label">Total Logins</div><div class="pf-value">' + (user.totalLogins || 0) + '</div></div>' +
+      '<div class="profile-field"><div class="pf-label">Status</div><div class="pf-value"><span class="status-pill ' + (user.status || '').toLowerCase() + '">' + user.status + '</span></div></div>' +
+      '<div class="profile-field"><div class="pf-label">Registered</div><div class="pf-value">' + formatDateTime(user.registered_at) + '</div></div>' +
+      '<div class="profile-field"><div class="pf-label">Approved</div><div class="pf-value">' + (user.approved_at ? formatDateTime(user.approved_at) : 'Not yet') + '</div></div>' +
+      '<div class="profile-field"><div class="pf-label">Last Login</div><div class="pf-value">' + (user.last_login ? formatDateTime(user.last_login) : 'Never') + '</div></div>' +
+      '<div class="profile-field"><div class="pf-label">Total Logins</div><div class="pf-value">' + (user.total_logins || 0) + '</div></div>' +
     '</div>' +
-    '<div style="margin-top:20px;"><h4 style="color:var(--gold-500);font-size:.95rem;margin-bottom:12px;"><i class="fas fa-history"></i> Account Status History</h4><div style="max-height:200px;overflow-y:auto;font-size:.82rem;">' +
-    (accountStatusHistory.filter(sh => sh.userId === user.id).map(sh => '<div style="background:rgba(255,255,255,.05);padding:10px 14px;border-radius:8px;margin-bottom:8px;"><strong style="color:var(--gold-500);">' + sh.previousStatus + ' → ' + sh.newStatus + '</strong><div style="color:rgba(255,255,255,.6);font-size:.78rem;margin-top:4px;">' + sh.date + ' at ' + sh.time + ' · By: ' + escapeHtml(sh.changedBy) + ' · ' + escapeHtml(sh.reason) + '</div></div>').join('') || '<p style="color:rgba(255,255,255,.4);">No status changes recorded.</p>') +
+    '<div style="margin-top:20px;"><h4 style="color:var(--gold-500);font-size:.95rem;margin-bottom:12px;"><i class="fas fa-history"></i> Status History</h4><div style="max-height:200px;overflow-y:auto;font-size:.82rem;">' +
+    ((statusHistory.data || []).map(sh => '<div style="background:rgba(255,255,255,.05);padding:10px 14px;border-radius:8px;margin-bottom:8px;"><strong style="color:var(--gold-500);">' + sh.previous_status + ' → ' + sh.new_status + '</strong><div style="color:rgba(255,255,255,.6);font-size:.78rem;margin-top:4px;">' + formatDateTime(sh.changed_at) + ' · By: ' + escapeHtml(sh.changed_by) + ' · ' + escapeHtml(sh.reason) + '</div></div>').join('') || '<p style="color:rgba(255,255,255,.4);">No status changes recorded.</p>') +
     '</div></div>';
+
   document.getElementById('userLoginHistoryContent').innerHTML = '';
   document.getElementById('userProfileModal').classList.add('active');
   document.body.style.overflow = 'hidden';
 }
+
 function closeUserProfile() {
   document.getElementById('userProfileModal').classList.remove('active');
   document.body.style.overflow = '';
 }
 
-function viewUserLoginHistory(userId) {
-  const user = findUserById(userId);
+async function viewUserLoginHistory(userId) {
+  const user = cachedUsers.find(u => u.id === userId);
   if (!user) return;
-  recordAdminAction(currentAdmin.id, 'LOGIN_HISTORY_VIEWED', user.id, 'Viewed login history of ' + user.email);
-  const userLogins = loginHistory.filter(lh => lh.userId === userId).sort((a, b) => new Date(b.loginTimestamp) - new Date(a.loginTimestamp));
-  const successLogins = userLogins.filter(lh => lh.status === 'SUCCESS').length;
+
+  await recordAdminAction('LOGIN_HISTORY_VIEWED', userId, 'Viewed login history of ' + user.email);
+
+  const { data: userLogins } = await supabaseClient
+    .from('login_history')
+    .select('*')
+    .eq('user_id', userId)
+    .order('login_timestamp', { ascending: false });
+
+  const logins = userLogins || [];
+  const successLogins = logins.filter(lh => lh.status === 'SUCCESS').length;
 
   document.getElementById('userProfileContent').innerHTML =
-    '<div class="admin-panel-header"><i class="fas fa-user-circle"></i><h3>' + escapeHtml(user.firstName) + ' ' + escapeHtml(user.surname) + '</h3></div>' +
+    '<div class="admin-panel-header"><i class="fas fa-user-circle"></i><h3>' + escapeHtml(user.first_name) + ' ' + escapeHtml(user.surname) + '</h3></div>' +
     '<p>Permanent User ID: <strong style="color:var(--gold-500);font-family:monospace;">' + escapeHtml(user.id) + '</strong></p>' +
     '<div class="profile-grid">' +
       '<div class="profile-field"><div class="pf-label">Email</div><div class="pf-value">' + escapeHtml(user.email) + '</div></div>' +
-      '<div class="profile-field"><div class="pf-label">Status</div><div class="pf-value"><span class="status-pill ' + user.status.toLowerCase() + '">' + user.status + '</span></div></div>' +
+      '<div class="profile-field"><div class="pf-label">Status</div><div class="pf-value"><span class="status-pill ' + (user.status || '').toLowerCase() + '">' + user.status + '</span></div></div>' +
       '<div class="profile-field"><div class="pf-label">Total Logins</div><div class="pf-value">' + successLogins + '</div></div>' +
     '</div>';
 
   document.getElementById('userLoginHistoryContent').innerHTML =
     '<h4 style="color:var(--gold-500);font-size:.95rem;margin-bottom:12px;"><i class="fas fa-history"></i> Complete Login History</h4>' +
     '<div class="login-history-list">' +
-    (userLogins.length ? userLogins.map(lh => '<div class="login-history-item"><div class="login-history-icon"><i class="fas fa-' + (lh.status === 'SUCCESS' ? 'sign-in-alt' : 'times-circle') + '"></i></div><div class="login-history-body"><h5>' + lh.loginDate + ' at ' + lh.loginTime + ' <span class="lh-status ' + lh.status.toLowerCase() + '">' + lh.status + '</span></h5><div class="lh-meta"><strong>Device:</strong> ' + escapeHtml(lh.deviceType) + ' · <strong>OS:</strong> ' + escapeHtml(lh.os) + ' · <strong>Browser:</strong> ' + escapeHtml(lh.browser) + '<br><strong>IP:</strong> ' + escapeHtml(lh.ipAddress) + '</div></div></div>').join('') : '<p style="color:rgba(255,255,255,.4);">No login records for this user.</p>') +
+    (logins.length ? logins.map(lh => '<div class="login-history-item"><div class="login-history-icon"><i class="fas fa-' + (lh.status === 'SUCCESS' ? 'sign-in-alt' : 'times-circle') + '"></i></div><div class="login-history-body"><h5>' + (lh.login_date || '') + ' at ' + (lh.login_time || '') + ' <span class="lh-status ' + lh.status.toLowerCase() + '">' + lh.status + '</span></h5><div class="lh-meta"><strong>Device:</strong> ' + escapeHtml(lh.device_type || '') + ' · <strong>OS:</strong> ' + escapeHtml(lh.os || '') + ' · <strong>Browser:</strong> ' + escapeHtml(lh.browser || '') + '<br><strong>IP:</strong> ' + escapeHtml(lh.ip_address || '') + '</div></div></div>').join('') : '<p style="color:rgba(255,255,255,.4);">No login records for this user.</p>') +
     '</div>';
 
   document.getElementById('userProfileModal').classList.add('active');
@@ -1314,381 +1591,53 @@ function viewUserLoginHistory(userId) {
 }
 
 // =====================================================================
-// LOGIN HISTORY
+// LOGIN HISTORY VIEW
 // =====================================================================
 function populateLoginHistoryUserFilter() {
   const sel = document.getElementById('lhUserFilter');
-  sel.innerHTML = '<option value="">All Users</option>' + users.map(u => '<option value="' + u.id + '">' + escapeHtml(u.firstName) + ' ' + escapeHtml(u.surname) + ' (' + escapeHtml(u.email) + ')</option>').join('');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">All Users</option>' + cachedUsers.map(u => '<option value="' + u.id + '">' + escapeHtml(u.first_name) + ' ' + escapeHtml(u.surname) + ' (' + escapeHtml(u.email) + ')</option>').join('');
 }
 
 function renderLoginHistory() {
   const list = document.getElementById('loginHistoryList');
-  const search = (document.getElementById('lhSearchInput').value || '').toLowerCase();
-  const userFilter = document.getElementById('lhUserFilter').value;
-  const statusFilter = document.getElementById('lhStatusFilter').value;
-  let filtered = [...loginHistory];
+  if (!list) return;
+  const search = (document.getElementById('lhSearchInput')?.value || '').toLowerCase();
+  const userFilter = document.getElementById('lhUserFilter')?.value || '';
+  const statusFilter = document.getElementById('lhStatusFilter')?.value || '';
+
+  let filtered = [...cachedLoginHistory];
   if (search) filtered = filtered.filter(lh => lh.email.toLowerCase().includes(search));
-  if (userFilter) filtered = filtered.filter(lh => lh.userId === userFilter);
+  if (userFilter) filtered = filtered.filter(lh => lh.user_id === userFilter);
   if (statusFilter) filtered = filtered.filter(lh => lh.status === statusFilter);
-  filtered.sort((a, b) => new Date(b.loginTimestamp) - new Date(a.loginTimestamp));
 
   if (!filtered.length) {
     list.innerHTML = '<p style="color:rgba(255,255,255,.4);text-align:center;padding:20px;">No login records match your filters.</p>';
     return;
   }
+
   list.innerHTML = filtered.slice(0, 100).map(lh => {
-    const user = findUserById(lh.userId);
-    const name = user ? user.firstName + ' ' + user.surname : lh.email;
-    return '<div class="login-history-item"><div class="login-history-icon"><i class="fas fa-' + (lh.status === 'SUCCESS' ? 'sign-in-alt' : 'times-circle') + '"></i></div><div class="login-history-body"><h5>' + escapeHtml(name) + ' <span class="lh-status ' + lh.status.toLowerCase() + '">' + lh.status + '</span></h5><div class="lh-meta"><strong>' + lh.loginDate + '</strong> at <strong>' + lh.loginTime + '</strong><br><strong>Email:</strong> ' + escapeHtml(lh.email) + ' · <strong>IP:</strong> ' + escapeHtml(lh.ipAddress) + '<br><strong>Device:</strong> ' + escapeHtml(lh.deviceType) + ' · <strong>OS:</strong> ' + escapeHtml(lh.os) + ' · <strong>Browser:</strong> ' + escapeHtml(lh.browser) + '</div></div></div>';
+    const user = cachedUsers.find(u => u.id === lh.user_id);
+    const name = user ? user.first_name + ' ' + user.surname : lh.email;
+    return '<div class="login-history-item"><div class="login-history-icon"><i class="fas fa-' + (lh.status === 'SUCCESS' ? 'sign-in-alt' : 'times-circle') + '"></i></div><div class="login-history-body"><h5>' + escapeHtml(name) + ' <span class="lh-status ' + lh.status.toLowerCase() + '">' + lh.status + '</span></h5><div class="lh-meta"><strong>' + (lh.login_date || '') + '</strong> at <strong>' + (lh.login_time || '') + '</strong><br><strong>Email:</strong> ' + escapeHtml(lh.email) + ' · <strong>IP:</strong> ' + escapeHtml(lh.ip_address || '') + '<br><strong>Device:</strong> ' + escapeHtml(lh.device_type || '') + ' · <strong>OS:</strong> ' + escapeHtml(lh.os || '') + ' · <strong>Browser:</strong> ' + escapeHtml(lh.browser || '') + '</div></div></div>';
   }).join('');
 }
-
-// =====================================================================
-// COURSE MODAL
-// =====================================================================
-function openCourse(courseId) {
-  if (!isUserLoggedIn) { openUserLogin(); return; }
-  if (!courses[courseId]) return;
-  currentCourseId = courseId;
-  currentCourse = courses[courseId];
-  quizPassed = false;
-  document.getElementById('modalCourseTitle').textContent = currentCourse.title;
-  renderAssignments();
-  renderGuides();
-  renderQuiz();
-  updateCertificateView();
-  document.getElementById('quizResult').className = 'quiz-result';
-  document.getElementById('quizResult').innerHTML = '';
-  document.getElementById('quizForm').reset();
-  document.getElementById('facilitatorSuccess').style.display = 'none';
-  document.getElementById('facilitatorForm').reset();
-  switchTab(document.querySelector('.modal-tab'), 'tab-assignments');
-  document.getElementById('courseModal').classList.add('active');
-  document.body.style.overflow = 'hidden';
-}
-function closeCourse() {
-  document.getElementById('courseModal').classList.remove('active');
-  document.body.style.overflow = '';
-}
-document.getElementById('courseModal').addEventListener('click', function(e) { if (e.target === this) closeCourse(); });
-
-function renderAssignments() {
-  const list = document.getElementById('assignmentList');
-  const items = currentCourse.assignments || [];
-  if (!items.length) { list.innerHTML = '<div class="empty-tab"><i class="fas fa-tasks"></i><p>No assignments added yet.</p></div>'; return; }
-  list.innerHTML = items.map((a, i) => '<div class="content-item"><div class="content-item-icon"><i class="fas fa-tasks"></i></div><div class="content-item-body"><h4>' + escapeHtml(a.title) + (a.pdfData ? ' <span class="pdf-tag">PDF</span>' : '') + '</h4><p>' + escapeHtml(a.desc || '') + '</p></div>' + (a.pdfData ? '<button class="btn btn-teal btn-sm" onclick="downloadAssignmentPDF(' + i + ')"><i class="fas fa-download"></i> Download</button>' : '') + '</div>').join('');
-}
-
-function renderGuides() {
-  const list = document.getElementById('guideList');
-  const items = currentCourse.guides || [];
-  if (!items.length) { list.innerHTML = '<div class="empty-tab"><i class="fas fa-book"></i><p>No study guides added yet.</p></div>'; return; }
-  list.innerHTML = items.map((g, i) => '<div class="content-item"><div class="content-item-icon" style="background:var(--teal-600);"><i class="fas fa-file-pdf"></i></div><div class="content-item-body"><h4>' + escapeHtml(g.title) + (g.pdfData ? ' <span class="pdf-tag">PDF</span>' : '') + '</h4><p>' + escapeHtml(g.desc || '') + '</p></div>' + (g.pdfData ? '<button class="btn btn-teal btn-sm" onclick="downloadGuide(\'' + currentCourseId + '\', ' + i + ')"><i class="fas fa-download"></i> Download</button>' : '') + '</div>').join('');
-}
-
-function renderQuiz() {
-  const container = document.getElementById('quizQuestions');
-  const items = currentCourse.quiz || [];
-  const submitBtn = document.getElementById('quizForm').querySelector('button[type="submit"]');
-  if (!items.length) {
-    container.innerHTML = '<div class="empty-tab"><i class="fas fa-question-circle"></i><p>No quiz questions added yet.</p></div>';
-    submitBtn.style.display = 'none';
-    return;
-  }
-  submitBtn.style.display = 'flex';
-  container.innerHTML = items.map((q, i) => '<div class="quiz-question"><h4>' + (i + 1) + '. ' + escapeHtml(q.q) + '</h4>' + q.options.map((opt, j) => '<label class="quiz-option" onclick="selectOption(this)"><input type="radio" name="q' + i + '" value="' + j + '"><span>' + escapeHtml(opt) + '</span></label>').join('') + '</div>').join('');
-}
-
-function switchTab(tabBtn, tabId) {
-  document.querySelectorAll('.modal-tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-  tabBtn.classList.add('active');
-  document.getElementById(tabId).classList.add('active');
-}
-
-function selectOption(label) {
-  const name = label.querySelector('input').name;
-  document.querySelectorAll('input[name="' + name + '"]').forEach(inp => inp.closest('.quiz-option').classList.remove('selected'));
-  label.classList.add('selected');
-}
-
-function submitQuiz(e) {
-  e.preventDefault();
-  if (!currentCourse || !currentCourse.quiz || !currentCourse.quiz.length) return;
-  const total = currentCourse.quiz.length;
-  let correct = 0;
-  currentCourse.quiz.forEach((q, i) => {
-    const sel = document.querySelector('input[name="q' + i + '"]:checked');
-    if (sel && parseInt(sel.value) === q.correct) correct++;
-  });
-  const percentage = Math.round((correct / total) * 100);
-  const resultDiv = document.getElementById('quizResult');
-  if (percentage >= 80) {
-    quizPassed = true;
-    resultDiv.className = 'quiz-result pass';
-    resultDiv.innerHTML = '<h3><i class="fas fa-check-circle"></i> Congratulations — Passed</h3><p>You scored <strong>' + percentage + '%</strong> (' + correct + '/' + total + ' correct). Admin will issue your certificate.</p><button class="btn btn-accent" onclick="switchTab(document.querySelectorAll(\'.modal-tab\')[4], \'tab-certificate\')"><i class="fas fa-certificate"></i> View Certificate</button>';
-  } else {
-    quizPassed = false;
-    resultDiv.className = 'quiz-result fail';
-    resultDiv.innerHTML = '<h3><i class="fas fa-times-circle"></i> Not Passed</h3><p>You scored <strong>' + percentage + '%</strong> (' + correct + '/' + total + ' correct). You need <strong>80%</strong> to pass.</p><button class="btn btn-primary" onclick="retryQuiz()"><i class="fas fa-redo"></i> Retry Quiz</button>';
-  }
-  resultDiv.style.display = 'block';
-  resultDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  updateCertificateView();
-}
-
-function retryQuiz() {
-  document.getElementById('quizForm').reset();
-  document.querySelectorAll('.quiz-option').forEach(o => o.classList.remove('selected'));
-  document.getElementById('quizResult').className = 'quiz-result';
-  document.getElementById('quizResult').innerHTML = '';
-  document.getElementById('quizResult').style.display = 'none';
-  quizPassed = false;
-  updateCertificateView();
-}
-
-function updateCertificateView() {
-  const waiting = document.getElementById('certificateWaiting');
-  const ready = document.getElementById('certificateReady');
-  const lockedMsg = document.getElementById('certLockedMsg');
-  if (!quizPassed) {
-    waiting.classList.remove('hidden');
-    ready.classList.add('hidden');
-    lockedMsg.style.display = 'block';
-    return;
-  }
-  const userEmail = currentUser ? currentUser.email.toLowerCase() : '';
-  const cert = issuedCertificates.find(c => c.courseId === currentCourseId && c.studentEmail.toLowerCase() === userEmail);
-  if (cert) {
-    waiting.classList.add('hidden');
-    ready.classList.remove('hidden');
-    lockedMsg.style.display = 'none';
-  } else {
-    waiting.classList.remove('hidden');
-    ready.classList.add('hidden');
-    lockedMsg.style.display = 'none';
-  }
-}
-
-function downloadAssignmentPDF(index) {
-  const a = currentCourse.assignments[index];
-  if (!a || !a.pdfData) return;
-  const link = document.createElement('a');
-  link.href = a.pdfData;
-  link.download = a.title.replace(/\s+/g, '-') + '.pdf';
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-}
-
-function downloadGuide(courseId, guideIndex) {
-  const g = courses[courseId].guides[guideIndex];
-  if (!g || !g.pdfData) return;
-  const link = document.createElement('a');
-  link.href = g.pdfData;
-  link.download = g.title.replace(/\s+/g, '-') + '.pdf';
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-}
-
-function downloadAdminCertificate() {
-  if (!quizPassed) { showToast('You must pass the quiz first.', 'error'); return; }
-  const userEmail = currentUser ? currentUser.email.toLowerCase() : '';
-  const cert = issuedCertificates.find(c => c.courseId === currentCourseId && c.studentEmail.toLowerCase() === userEmail);
-  if (!cert) { showToast('Certificate not issued yet.', 'error'); return; }
-  const link = document.createElement('a');
-  link.href = cert.dataUrl;
-  link.download = cert.studentName.replace(/\s+/g, '-') + '-' + cert.courseTitle.replace(/\s+/g, '-') + '-Certificate.pdf';
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-}
-
-function submitFacilitatorRequest(e) {
-  e.preventDefault();
-  const name = document.getElementById('facilitatorName').value.trim();
-  const email = document.getElementById('facilitatorEmail').value.trim();
-  const topic = document.getElementById('facilitatorTopic').value;
-  if (!name || !email || !topic) { showToast('Please fill in all required fields.', 'error'); return; }
-  document.getElementById('facilitatorSuccess').style.display = 'block';
-  document.getElementById('facilitatorForm').reset();
-  showToast('Facilitator request submitted.', 'success');
-}
-
-// =====================================================================
-// FILE READ HELPER
-// =====================================================================
-function readFileAsDataURL(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
-// =====================================================================
-// ADMIN: COURSE MANAGEMENT
-// =====================================================================
-function populateAdminSelects() {
-  const ids = Object.keys(courses);
-  const options = ids.length ? ids.map(id => '<option value="' + id + '">' + escapeHtml(courses[id].title) + '</option>').join('') : '<option value="">No courses available</option>';
-  ['adminAssignmentCourse','adminGuideCourse','adminCertCourse','adminQuizCourse'].forEach(selId => {
-    const el = document.getElementById(selId);
-    if (el) el.innerHTML = options;
-  });
-}
-
-function adminAddCourse() {
-  if (!isAdminLoggedIn) return;
-  const title = document.getElementById('adminCourseTitle').value.trim();
-  const desc = document.getElementById('adminCourseDesc').value.trim();
-  const duration = document.getElementById('adminCourseDuration').value.trim();
-  const category = document.getElementById('adminCourseCategory').value.trim();
-  const image = document.getElementById('adminCourseImage').value.trim();
-  const icon = document.getElementById('adminCourseIcon').value.trim() || 'fa-book';
-  if (!title || !desc) { showAdminStatus('Title and description required.', false); return; }
-  const id = 'course-' + (++courseIdCounter);
-  courses[id] = { title, description: desc, duration, category, image, icon, assignments: [], guides: [], quiz: [] };
-  recordAdminAction(currentAdmin.id, 'COURSE_ADDED', null, 'Added: ' + title);
-  showAdminStatus('Course "' + title + '" added.', true);
-  ['adminCourseTitle','adminCourseDesc','adminCourseDuration','adminCourseCategory','adminCourseImage','adminCourseIcon'].forEach(id => document.getElementById(id).value = '');
-  renderCourseGrid();
-  populateAdminSelects();
-  showToast('Course added.', 'success');
-}
-
-async function adminUploadAssignment() {
-  if (!isAdminLoggedIn) return;
-  const courseId = document.getElementById('adminAssignmentCourse').value;
-  const title = document.getElementById('adminAssignmentTitle').value.trim();
-  const desc = document.getElementById('adminAssignmentDesc').value.trim();
-  const fileInput = document.getElementById('adminAssignmentPdf');
-  if (!courseId || !title || !fileInput.files.length) { showAdminStatus('Please complete all fields.', false); return; }
-  const file = fileInput.files[0];
-  if (file.type !== 'application/pdf') { showAdminStatus('Only PDF files allowed.', false); return; }
-  try {
-    const dataUrl = await readFileAsDataURL(file);
-    courses[courseId].assignments.push({ title, desc, pdfData: dataUrl });
-    recordAdminAction(currentAdmin.id, 'ASSIGNMENT_UPLOADED', null, title);
-    showAdminStatus('Assignment "' + title + '" uploaded.', true);
-    ['adminAssignmentTitle','adminAssignmentDesc','adminAssignmentPdf'].forEach(id => document.getElementById(id).value = '');
-    if (currentCourseId === courseId && isUserLoggedIn) { currentCourse = courses[courseId]; renderAssignments(); }
-    showToast('Assignment uploaded.', 'success');
-  } catch { showAdminStatus('Error reading file.', false); }
-}
-
-async function adminUploadGuide() {
-  if (!isAdminLoggedIn) return;
-  const courseId = document.getElementById('adminGuideCourse').value;
-  const title = document.getElementById('adminGuideTitle').value.trim();
-  const desc = document.getElementById('adminGuideDesc').value.trim();
-  const fileInput = document.getElementById('adminGuidePdf');
-  if (!courseId || !title || !fileInput.files.length) { showAdminStatus('Please complete all fields.', false); return; }
-  const file = fileInput.files[0];
-  if (file.type !== 'application/pdf') { showAdminStatus('Only PDF files allowed.', false); return; }
-  try {
-    const dataUrl = await readFileAsDataURL(file);
-    courses[courseId].guides.push({ title, desc, pdfData: dataUrl });
-    recordAdminAction(currentAdmin.id, 'GUIDE_UPLOADED', null, title);
-    showAdminStatus('Study guide "' + title + '" uploaded.', true);
-    ['adminGuideTitle','adminGuideDesc','adminGuidePdf'].forEach(id => document.getElementById(id).value = '');
-    if (currentCourseId === courseId && isUserLoggedIn) { currentCourse = courses[courseId]; renderGuides(); }
-    showToast('Study guide uploaded.', 'success');
-  } catch { showAdminStatus('Error reading file.', false); }
-}
-
-async function adminIssueCertificate() {
-  if (!isAdminLoggedIn) return;
-  const courseId = document.getElementById('adminCertCourse').value;
-  const studentName = document.getElementById('adminCertStudentName').value.trim();
-  const studentEmail = document.getElementById('adminCertStudentEmail').value.trim();
-  const fileInput = document.getElementById('adminCertPdf');
-  if (!courseId || !studentName || !studentEmail || !fileInput.files.length) { showCertStatus('Please complete all fields.', false); return; }
-  const file = fileInput.files[0];
-  if (file.type !== 'application/pdf') { showCertStatus('Only PDF files allowed.', false); return; }
-  try {
-    const dataUrl = await readFileAsDataURL(file);
-    issuedCertificates.push({ studentName, studentEmail, courseId, courseTitle: courses[courseId].title, fileName: file.name, dataUrl, issuedAt: new Date().toLocaleDateString('en-ZA') });
-    recordAdminAction(currentAdmin.id, 'CERTIFICATE_ISSUED', null, studentName);
-    showCertStatus('Certificate issued to ' + studentName, true);
-    ['adminCertStudentName','adminCertStudentEmail','adminCertPdf'].forEach(id => document.getElementById(id).value = '');
-    refreshIssuedCerts();
-    if (isUserLoggedIn) updateCertificateView();
-    showToast('Certificate issued.', 'success');
-  } catch { showCertStatus('Error reading file.', false); }
-}
-
-function adminAddQuizQuestion() {
-  if (!isAdminLoggedIn) return;
-  const courseId = document.getElementById('adminQuizCourse').value;
-  const question = document.getElementById('adminQuizQuestion').value.trim();
-  const opts = ['adminQuizOpt0','adminQuizOpt1','adminQuizOpt2','adminQuizOpt3'].map(id => document.getElementById(id).value.trim());
-  const correct = parseInt(document.getElementById('adminQuizCorrect').value);
-  if (!courseId || !question || opts.some(o => !o) || isNaN(correct) || correct < 0 || correct > 3) { showAdminStatus('Complete all fields. Correct index 0-3.', false); return; }
-  courses[courseId].quiz.push({ q: question, options: opts, correct });
-  recordAdminAction(currentAdmin.id, 'QUIZ_QUESTION_ADDED', null, courses[courseId].title);
-  showAdminStatus('Quiz question added.', true);
-  ['adminQuizQuestion','adminQuizOpt0','adminQuizOpt1','adminQuizOpt2','adminQuizOpt3','adminQuizCorrect'].forEach(id => document.getElementById(id).value = '');
-  if (currentCourseId === courseId && isUserLoggedIn) { currentCourse = courses[courseId]; renderQuiz(); }
-  showToast('Quiz question added.', 'success');
-}
-
-function showAdminStatus(message, success) {
-  const status = document.getElementById('adminStatus');
-  status.textContent = message;
-  status.className = 'admin-status ' + (success ? 'success' : 'error');
-  status.style.display = 'block';
-  clearTimeout(status._timer);
-  status._timer = setTimeout(() => status.style.display = 'none', 4500);
-}
-
-function showCertStatus(message, success) {
-  const status = document.getElementById('adminCertStatus');
-  status.textContent = message;
-  status.className = 'admin-status ' + (success ? 'success' : 'error');
-  status.style.display = 'block';
-  clearTimeout(status._timer);
-  status._timer = setTimeout(() => status.style.display = 'none', 4500);
-}
-
-function refreshIssuedCerts() {
-  const list = document.getElementById('issuedCertList');
-  if (!issuedCertificates.length) { list.innerHTML = '<p style="color:rgba(255,255,255,.4);font-size:.8rem;">No certificates issued yet.</p>'; return; }
-  list.innerHTML = issuedCertificates.map(c => '<div style="background:rgba(255,255,255,.06);border-radius:8px;padding:10px;margin-bottom:8px;font-size:.8rem;"><strong style="color:var(--gold-500);">' + escapeHtml(c.studentName) + '</strong><br><span style="color:rgba(255,255,255,.7);">' + escapeHtml(c.courseTitle) + '</span><br><span style="color:rgba(255,255,255,.4);font-size:.72rem;">Issued: ' + c.issuedAt + '</span></div>').join('');
-}
-
-// =====================================================================
-// KEYBOARD & INIT
-// =====================================================================
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') {
-    if (document.getElementById('adminLoginOverlay').classList.contains('active')) closeAdminLogin();
-    else if (document.getElementById('userLoginOverlay').classList.contains('active')) closeUserLogin();
-    else if (document.getElementById('courseModal').classList.contains('active')) closeCourse();
-    else if (document.getElementById('userProfileModal').classList.contains('active')) closeUserProfile();
-    else if (document.getElementById('adminDashboard').classList.contains('active')) closeAdminDashboard();
-  }
-});
-
-document.querySelectorAll('a[href^="#"]').forEach(a => {
-  a.addEventListener('click', function(e) {
-    const href = this.getAttribute('href');
-    if (href === '#') return;
-    const target = document.querySelector(href);
-    if (target) { e.preventDefault(); target.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
-  });
-});
-
-// INIT
-renderCourseGrid();
-populateAdminSelects();
-refreshIssuedCerts();
-updateAdminTab();
-updateNavActions();
-console.log('✅ SA Youth Learning initialized');
-</script>
-
-</body>
-</html>
+</script
+  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: #0a1f33; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+    <h1 style="color: #d4a017; margin: 0;">SA Youth Learning</h1>
+  </div>
+  <div style="background: #ffffff; padding: 30px; border: 1px solid #e2e8f0;">
+    <h2 style="color: #0a1f33;">Hello {{to_name}},</h2>
+    <p>Your account status is: <strong>{{status}}</strong></p>
+    <div style="background: #f3f7fa; padding: 18px; border-radius: 8px; margin: 20px 0;">
+      <p style="margin: 0 0 8px 0;"><strong>Email:</strong> {{email}}</p>
+      <p style="margin: 0;"><strong>User ID:</strong> {{user_id}}</p>
+    </div>
+    <div style="text-align: center; margin: 30px 0;">
+      <a href="{{login_url}}" style="background: #d4a017; color: #0a1f33; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: bold;">
+        Login to Your Account
+      </a>
+    </div>
+  </div>
+</div>
