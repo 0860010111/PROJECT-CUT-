@@ -1095,18 +1095,24 @@ async function handleRegistration(e) {
       return;
     }
 
-    const user = await createUserInDb(firstName, surname, email, phone, password);
+        const user = await createUserInDb(firstName, surname, email, phone, password);
     console.log('✅ User created:', user.id);
+
+    // Record the REGISTRATION event
+    await recordLoginInDb(user.id, email, 'SUCCESS', 'REGISTRATION');
+    console.log('📝 REGISTRATION event logged for', email);
 
     showToast('Registration submitted. Check your email for confirmation.', 'success');
     document.getElementById('registrationForm').reset();
     
-    // Send pending confirmation email in background (do not block)
     sendApprovalEmail({ ...user, status: 'PENDING' }).catch(err => console.warn('Pending email failed:', err));
-    
-  } catch (err) {
-    console.error('❌ Registration failed:', err);
-    showToast('Registration failed: ' + (err.message || 'Unknown error'), 'error');
+
+    if (isAdminLoggedIn) {
+      await loadUsersCache();
+      await loadLoginHistoryCache();
+      renderUserTable();
+      renderDashboard();
+    }
   } finally {
     btn.disabled = false;
     btn.innerHTML = '<i class="fas fa-user-plus"></i> Create Account';
@@ -1609,7 +1615,13 @@ function renderLoginHistory() {
   let filtered = [...cachedLoginHistory];
   if (search) filtered = filtered.filter(lh => lh.email.toLowerCase().includes(search));
   if (userFilter) filtered = filtered.filter(lh => lh.user_id === userFilter);
-  if (statusFilter) filtered = filtered.filter(lh => lh.status === statusFilter);
+   if (statusFilter) {
+    if (statusFilter === 'REGISTRATION' || statusFilter === 'APPROVAL') {
+      filtered = filtered.filter(lh => lh.event_type === statusFilter);
+    } else {
+      filtered = filtered.filter(lh => lh.status === statusFilter && (lh.event_type === 'LOGIN' || !lh.event_type));
+    }
+  }
 
   if (!filtered.length) {
     list.innerHTML = '<p style="color:rgba(255,255,255,.4);text-align:center;padding:20px;">No login records match your filters.</p>';
@@ -1619,7 +1631,16 @@ function renderLoginHistory() {
   list.innerHTML = filtered.slice(0, 100).map(lh => {
     const user = cachedUsers.find(u => u.id === lh.user_id);
     const name = user ? user.first_name + ' ' + user.surname : lh.email;
-    return '<div class="login-history-item"><div class="login-history-icon"><i class="fas fa-' + (lh.status === 'SUCCESS' ? 'sign-in-alt' : 'times-circle') + '"></i></div><div class="login-history-body"><h5>' + escapeHtml(name) + ' <span class="lh-status ' + lh.status.toLowerCase() + '">' + lh.status + '</span></h5><div class="lh-meta"><strong>' + (lh.login_date || '') + '</strong> at <strong>' + (lh.login_time || '') + '</strong><br><strong>Email:</strong> ' + escapeHtml(lh.email) + ' · <strong>IP:</strong> ' + escapeHtml(lh.ip_address || '') + '<br><strong>Device:</strong> ' + escapeHtml(lh.device_type || '') + ' · <strong>OS:</strong> ' + escapeHtml(lh.os || '') + ' · <strong>Browser:</strong> ' + escapeHtml(lh.browser || '') + '</div></div></div>';
+        const eventType = lh.event_type || 'LOGIN';
+    const iconMap = {
+      'REGISTRATION': 'user-plus',
+      'APPROVAL': 'check-circle',
+      'LOGIN': lh.status === 'SUCCESS' ? 'sign-in-alt' : 'times-circle',
+      'LOGOUT': 'sign-out-alt'
+    };
+    const icon = iconMap[eventType] || 'sign-in-alt';
+    const eventLabel = eventType.charAt(0) + eventType.slice(1).toLowerCase();
+    return '<div class="login-history-item"><div class="login-history-icon"><i class="fas fa-' + icon + '"></i></div><div class="login-history-body"><h5>' + escapeHtml(name) + ' <span class="lh-status ' + (lh.status || 'success').toLowerCase() + '">' + eventLabel + ' · ' + (lh.status || 'SUCCESS') + '</span></h5><div class="lh-meta"><strong>' + (lh.login_date || '') + '</strong> at <strong>' + (lh.login_time || '') + '</strong><br><strong>Email:</strong> ' + escapeHtml(lh.email) + ' · <strong>IP:</strong> ' + escapeHtml(lh.ip_address || '') + '<br><strong>Device:</strong> ' + escapeHtml(lh.device_type || '') + ' · <strong>OS:</strong> ' + escapeHtml(lh.os || '') + ' · <strong>Browser:</strong> ' + escapeHtml(lh.browser || '') + '</div></div></div>';
   }).join('');
 }
 </script
