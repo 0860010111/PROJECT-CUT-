@@ -463,7 +463,7 @@ body{font-family:'Inter',sans-serif;background:#000;color:#fff;line-height:1.6}
 </div>
 </div>
 <div id="tab-quiz" class="tab-content">
-<p style="color:#999;margin-bottom:22px;font-size:.9rem;">Answer all questions. You need <strong style="color:var(--gold);">80% or higher</strong> to pass. Your mark and correct answers will be shown after submission.</p>
+<p style="color:#999;margin-bottom:22px;font-size:.9rem;">Answer all questions. You need <strong style="color:var(--gold);">80% or higher</strong> to pass.</p>
 <form id="quizForm" onsubmit="submitQuiz(event)">
 <div id="quizQuestions"></div>
 <button type="submit" class="btn btn-primary btn-block btn-large"><i class="fas fa-check-circle"></i> Submit Quiz</button>
@@ -491,7 +491,7 @@ body{font-family:'Inter',sans-serif;background:#000;color:#fff;line-height:1.6}
 <div id="assignmentSubmitModal" class="modal-overlay">
 <div class="modal" style="max-width:600px;">
 <div class="modal-header">
-<h2 id="assignmentSubmitTitle">Submit Assignment</h2>
+<h2>Submit Assignment</h2>
 <button class="modal-close" onclick="closeAssignmentModal()"><i class="fas fa-times"></i></button>
 </div>
 <div class="modal-body">
@@ -596,11 +596,7 @@ body{font-family:'Inter',sans-serif;background:#000;color:#fff;line-height:1.6}
 <div class="login-history-list" id="loginHistoryList"></div>
 </div>
 </div>
-<div class="admin-card" style="grid-column:1/-1;">
-<h4><i class="fas fa-list"></i> Existing Courses</h4>
-<p>Delete any course you no longer need. This also removes its assignments, guides, and quiz questions.</p>
-<div id="adminCourseList" style="max-height:300px;overflow-y:auto;"></div>
-</div>
+<div id="adm-courses" class="tab-content">
 <div class="admin-panel">
 <div class="admin-panel-header"><i class="fas fa-book"></i><h3>Course Management</h3></div>
 <p>Create courses, upload materials, add quiz questions.</p>
@@ -640,6 +636,11 @@ body{font-family:'Inter',sans-serif;background:#000;color:#fff;line-height:1.6}
 <input type="text" id="adminQuizOpt3" class="admin-input" placeholder="Option D">
 <input type="number" id="adminQuizCorrect" class="admin-input" placeholder="Correct (0-3)" min="0" max="3">
 <button class="admin-btn" onclick="adminAddQuizQuestion()"><i class="fas fa-plus"></i> Add</button>
+</div>
+<div class="admin-card" style="grid-column:1/-1;">
+<h4><i class="fas fa-list"></i> Existing Courses</h4>
+<p>Delete any course you no longer need. This also removes its assignments, guides, and quiz questions.</p>
+<div id="adminCourseList" style="max-height:300px;overflow-y:auto;"></div>
 </div>
 </div>
 <div id="adminStatus2" class="admin-status"></div>
@@ -693,7 +694,6 @@ body{font-family:'Inter',sans-serif;background:#000;color:#fff;line-height:1.6}
 const SUPABASE_URL = 'https://mtwqdvdcgphtrogxtlaa.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_HtIa-hzLpwkMapjbwzT46g_OrkkMyJX';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
 const EMAILJS_PUBLIC_KEY = 'U6DJnqlQn5113CXNS';
 const EMAILJS_SERVICE_ID = 'service_4scps5a';
 const EMAILJS_TEMPLATE_ID = 'template_s77wrvk';
@@ -931,15 +931,14 @@ function recordLoginInDb(userId, email, status, eventType) {
       if (res.error) throw res.error;
       console.log('📝', eventType || 'LOGIN', 'recorded');
       return res.data;
-    })
-    .catch(function(err) {
+    }, function(err) {
       console.error('recordLogin failed:', err);
       return null;
     });
 }
 
 // =====================================================================
-// SUPABASE — AUDIT
+// SUPABASE — AUDIT (FIXED — no .catch on query builder)
 // =====================================================================
 function recordAdminAction(action, targetUserId, details) {
   return supabaseClient.from('admin_audit_log').insert({
@@ -947,7 +946,12 @@ function recordAdminAction(action, targetUserId, details) {
     action: action,
     target_user_id: targetUserId || null,
     details: details || ''
-  }).catch(function(err) { console.warn('Audit log:', err); });
+  }).then(function(res) {
+    return res;
+  }, function(err) {
+    console.warn('Audit log:', err);
+    return null;
+  });
 }
 
 // =====================================================================
@@ -1288,67 +1292,20 @@ function updateAdminTab() {
 // =====================================================================
 // ADMIN DASHBOARD
 // =====================================================================
-function renderAdminCourseList() {
-  var list = document.getElementById('adminCourseList');
-  if (!list) return;
-  if (!cachedCourses.length) {
-    list.innerHTML = '<p style="color:#666;font-size:.85rem;">No courses yet. Add one above.</p>';
-    return;
-  }
-  list.innerHTML = cachedCourses.map(function(c) {
-    return '<div style="background:#111;border:1px solid #333;border-radius:8px;padding:12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">' +
-      '<div style="flex:1;min-width:200px;">' +
-        '<strong style="color:var(--gold);font-size:.92rem;">' + escapeHtml(c.title) + '</strong><br>' +
-        '<span style="color:#999;font-size:.78rem;">' + escapeHtml(c.category || 'General') + ' · ' + escapeHtml(c.duration || 'Self-paced') + '</span>' +
-      '</div>' +
-      '<button class="btn btn-sm" style="background:var(--danger);color:#fff;border:none;padding:7px 14px;border-radius:6px;font-family:Inter,sans-serif;font-size:.78rem;font-weight:600;cursor:pointer;" onclick="adminDeleteCourse(\'' + c.id + '\', \'' + escapeHtml(c.title).replace(/'/g, "\\'") + '\')">' +
-        '<i class="fas fa-trash"></i> Delete' +
-      '</button>' +
-    '</div>';
-  }).join('');
-}
-
-function adminDeleteCourse(courseId, courseTitle) {
-  if (!isAdminLoggedIn) return;
-  if (!confirm('Delete course "' + courseTitle + '"?\n\nThis will also remove:\n• All assignments\n• All study guides\n• All quiz questions\n\nThis cannot be undone.')) return;
-
-  showAdminStatus2('Deleting "' + courseTitle + '"...', true);
-
-  supabaseClient.from('assignments').delete().eq('course_id', courseId)
+function openAdminDashboard() {
+  if (!isAdminLoggedIn) { openAdminLogin(); return; }
+  document.getElementById('adminDashboard').classList.add('active');
+  document.body.style.overflow = 'hidden';
+  Promise.all([loadUsersCache(), loadLoginHistoryCache(), loadFacilitatorRequests(), loadCertificates(), loadCourses()])
     .then(function() {
-      return supabaseClient.from('study_guides').delete().eq('course_id', courseId);
-    })
-    .then(function() {
-      return supabaseClient.from('quiz_questions').delete().eq('course_id', courseId);
-    })
-    .then(function() {
-      return supabaseClient.from('certificates').delete().eq('course_id', courseId);
-    })
-    .then(function() {
-      return supabaseClient.from('facilitator_requests').delete().eq('course_id', courseId);
-    })
-    .then(function() {
-      return supabaseClient.from('assignment_completions').delete().eq('course_id', courseId);
-    })
-    .then(function() {
-      return supabaseClient.from('courses').delete().eq('id', courseId);
-    })
-    .then(function(res) {
-      if (res.error) throw res.error;
-      return recordAdminAction('COURSE_DELETED', null, courseTitle);
-    })
-    .then(function() {
-      showAdminStatus2('Course deleted.', true);
-      showToast('Course deleted.', 'success');
-      return loadCourses();
-    })
-    .then(function() {
-      renderAdminCourseList();
+      renderDashboard();
+      renderUserTable();
+      renderLoginHistory();
+      renderFacilitatorRequests();
       populateAdminSelects();
-    })
-    .catch(function(err) {
-      console.error('Delete course error:', err);
-      showAdminStatus2('❌ Delete failed: ' + err.message, false);
+      populateLoginHistoryUserFilter();
+      refreshIssuedCerts();
+      renderAdminCourseList();
     });
 }
 function closeAdminDashboard() {
@@ -1366,6 +1323,7 @@ function switchAdminTab(tabBtn, tabId) {
   if (tabId === 'adm-facilitators') renderFacilitatorRequests();
   if (tabId === 'adm-login-history') renderLoginHistory();
   if (tabId === 'adm-certificates') refreshIssuedCerts();
+  if (tabId === 'adm-courses') renderAdminCourseList();
 }
 function renderDashboard() {
   var total = cachedUsers.length;
@@ -1406,7 +1364,7 @@ function renderDashboard() {
 }
 
 // =====================================================================
-// FACILITATOR REQUESTS
+// FACILITATOR REQUESTS (Admin view)
 // =====================================================================
 function renderFacilitatorRequests() {
   var list = document.getElementById('facilitatorRequestsList');
@@ -2010,6 +1968,61 @@ function populateAdminSelects() {
 }
 
 // =====================================================================
+// ADMIN — COURSE LIST (NEW)
+// =====================================================================
+function renderAdminCourseList() {
+  var list = document.getElementById('adminCourseList');
+  if (!list) return;
+  if (!cachedCourses.length) {
+    list.innerHTML = '<p style="color:#666;font-size:.85rem;">No courses yet. Add one above.</p>';
+    return;
+  }
+  list.innerHTML = cachedCourses.map(function(c) {
+    return '<div style="background:#0a0a0a;border:1px solid #333;border-radius:8px;padding:12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">' +
+      '<div style="flex:1;min-width:200px;">' +
+        '<strong style="color:var(--gold);font-size:.92rem;">' + escapeHtml(c.title) + '</strong><br>' +
+        '<span style="color:#999;font-size:.78rem;">' + escapeHtml(c.category || 'General') + ' · ' + escapeHtml(c.duration || 'Self-paced') + '</span>' +
+      '</div>' +
+      '<button class="btn btn-sm" style="background:var(--danger);color:#fff;border:none;padding:7px 14px;border-radius:6px;font-family:Inter,sans-serif;font-size:.78rem;font-weight:600;cursor:pointer;" onclick="adminDeleteCourse(\'' + c.id + '\', \'' + escapeHtml(c.title).replace(/'/g, "\\'") + '\')">' +
+        '<i class="fas fa-trash"></i> Delete' +
+      '</button>' +
+    '</div>';
+  }).join('');
+}
+
+function adminDeleteCourse(courseId, courseTitle) {
+  if (!isAdminLoggedIn) return;
+  if (!confirm('Delete course "' + courseTitle + '"?\n\nThis will also remove:\n• All assignments\n• All study guides\n• All quiz questions\n\nThis cannot be undone.')) return;
+
+  showAdminStatus2('Deleting "' + courseTitle + '"...', true);
+
+  supabaseClient.from('assignments').delete().eq('course_id', courseId)
+    .then(function() { return supabaseClient.from('study_guides').delete().eq('course_id', courseId); })
+    .then(function() { return supabaseClient.from('quiz_questions').delete().eq('course_id', courseId); })
+    .then(function() { return supabaseClient.from('certificates').delete().eq('course_id', courseId); })
+    .then(function() { return supabaseClient.from('facilitator_requests').delete().eq('course_id', courseId); })
+    .then(function() { return supabaseClient.from('assignment_completions').delete().eq('course_id', courseId); })
+    .then(function() { return supabaseClient.from('courses').delete().eq('id', courseId); })
+    .then(function(res) {
+      if (res.error) throw res.error;
+      return recordAdminAction('COURSE_DELETED', null, courseTitle);
+    })
+    .then(function() {
+      showAdminStatus2('Course deleted.', true);
+      showToast('Course deleted.', 'success');
+      return loadCourses();
+    })
+    .then(function() {
+      renderAdminCourseList();
+      populateAdminSelects();
+    })
+    .catch(function(err) {
+      console.error('Delete course error:', err);
+      showAdminStatus2('❌ Delete failed: ' + err.message, false);
+    });
+}
+
+// =====================================================================
 // ADMIN — ADD COURSE
 // =====================================================================
 function adminAddCourse() {
@@ -2034,6 +2047,7 @@ function adminAddCourse() {
     })
     .then(function() {
       populateAdminSelects();
+      renderAdminCourseList();
       showToast('Course added.', 'success');
     })
     .catch(function(err) { showAdminStatus2('❌ ' + err.message, false); });
@@ -2237,7 +2251,7 @@ document.querySelectorAll('a[href^="#"]').forEach(function(a) {
   });
 });
 
-console.log('✅ SA Youth Learning loaded — Black/Gold theme');
+console.log('✅ SA Youth Learning loaded — Black/Gold theme + delete course + fixed audit log');
 </script>
 
 </body>
