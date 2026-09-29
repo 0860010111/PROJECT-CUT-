@@ -596,7 +596,11 @@ body{font-family:'Inter',sans-serif;background:#000;color:#fff;line-height:1.6}
 <div class="login-history-list" id="loginHistoryList"></div>
 </div>
 </div>
-<div id="adm-courses" class="tab-content">
+<div class="admin-card" style="grid-column:1/-1;">
+<h4><i class="fas fa-list"></i> Existing Courses</h4>
+<p>Delete any course you no longer need. This also removes its assignments, guides, and quiz questions.</p>
+<div id="adminCourseList" style="max-height:300px;overflow-y:auto;"></div>
+</div>
 <div class="admin-panel">
 <div class="admin-panel-header"><i class="fas fa-book"></i><h3>Course Management</h3></div>
 <p>Create courses, upload materials, add quiz questions.</p>
@@ -1284,19 +1288,67 @@ function updateAdminTab() {
 // =====================================================================
 // ADMIN DASHBOARD
 // =====================================================================
-function openAdminDashboard() {
-  if (!isAdminLoggedIn) { openAdminLogin(); return; }
-  document.getElementById('adminDashboard').classList.add('active');
-  document.body.style.overflow = 'hidden';
-  Promise.all([loadUsersCache(), loadLoginHistoryCache(), loadFacilitatorRequests(), loadCertificates()])
+function renderAdminCourseList() {
+  var list = document.getElementById('adminCourseList');
+  if (!list) return;
+  if (!cachedCourses.length) {
+    list.innerHTML = '<p style="color:#666;font-size:.85rem;">No courses yet. Add one above.</p>';
+    return;
+  }
+  list.innerHTML = cachedCourses.map(function(c) {
+    return '<div style="background:#111;border:1px solid #333;border-radius:8px;padding:12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">' +
+      '<div style="flex:1;min-width:200px;">' +
+        '<strong style="color:var(--gold);font-size:.92rem;">' + escapeHtml(c.title) + '</strong><br>' +
+        '<span style="color:#999;font-size:.78rem;">' + escapeHtml(c.category || 'General') + ' · ' + escapeHtml(c.duration || 'Self-paced') + '</span>' +
+      '</div>' +
+      '<button class="btn btn-sm" style="background:var(--danger);color:#fff;border:none;padding:7px 14px;border-radius:6px;font-family:Inter,sans-serif;font-size:.78rem;font-weight:600;cursor:pointer;" onclick="adminDeleteCourse(\'' + c.id + '\', \'' + escapeHtml(c.title).replace(/'/g, "\\'") + '\')">' +
+        '<i class="fas fa-trash"></i> Delete' +
+      '</button>' +
+    '</div>';
+  }).join('');
+}
+
+function adminDeleteCourse(courseId, courseTitle) {
+  if (!isAdminLoggedIn) return;
+  if (!confirm('Delete course "' + courseTitle + '"?\n\nThis will also remove:\n• All assignments\n• All study guides\n• All quiz questions\n\nThis cannot be undone.')) return;
+
+  showAdminStatus2('Deleting "' + courseTitle + '"...', true);
+
+  supabaseClient.from('assignments').delete().eq('course_id', courseId)
     .then(function() {
-      renderDashboard();
-      renderUserTable();
-      renderLoginHistory();
-      renderFacilitatorRequests();
+      return supabaseClient.from('study_guides').delete().eq('course_id', courseId);
+    })
+    .then(function() {
+      return supabaseClient.from('quiz_questions').delete().eq('course_id', courseId);
+    })
+    .then(function() {
+      return supabaseClient.from('certificates').delete().eq('course_id', courseId);
+    })
+    .then(function() {
+      return supabaseClient.from('facilitator_requests').delete().eq('course_id', courseId);
+    })
+    .then(function() {
+      return supabaseClient.from('assignment_completions').delete().eq('course_id', courseId);
+    })
+    .then(function() {
+      return supabaseClient.from('courses').delete().eq('id', courseId);
+    })
+    .then(function(res) {
+      if (res.error) throw res.error;
+      return recordAdminAction('COURSE_DELETED', null, courseTitle);
+    })
+    .then(function() {
+      showAdminStatus2('Course deleted.', true);
+      showToast('Course deleted.', 'success');
+      return loadCourses();
+    })
+    .then(function() {
+      renderAdminCourseList();
       populateAdminSelects();
-      populateLoginHistoryUserFilter();
-      refreshIssuedCerts();
+    })
+    .catch(function(err) {
+      console.error('Delete course error:', err);
+      showAdminStatus2('❌ Delete failed: ' + err.message, false);
     });
 }
 function closeAdminDashboard() {
