@@ -708,3 +708,1027 @@ body{font-family:'Inter',sans-serif;background:#fafbfc;color:#1a2b3c;line-height
 </div>
 </div>
 </div>
+  <script>
+// =====================================================================
+// SUPABASE INITIALIZATION
+// =====================================================================
+const SUPABASE_URL = 'https://mtwqdvdcgphtrogxtlaa.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_HtIa-hzLpwkMapjbwzT46g_OrkkMyJX';
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// =====================================================================
+// EMAILJS CONFIGURATION
+// =====================================================================
+const EMAILJS_PUBLIC_KEY = 'U6DJnqlQn5113CXNS';
+const EMAILJS_SERVICE_ID = 'service_4scps5a';
+const EMAILJS_TEMPLATE_ID = 'template_s77wrvk';
+
+// =====================================================================
+// GLOBAL STATE
+// =====================================================================
+const ADMIN_CREDENTIALS = { username: 'southafrica', password: '123456' };
+let isAdminLoggedIn = false;
+let currentAdmin = null;
+let isUserLoggedIn = false;
+let currentUser = null;
+let currentCourseId = null;
+let currentCourse = null;
+let currentQuizQuestions = [];
+let quizPassed = false;
+let cachedUsers = [];
+let cachedLoginHistory = [];
+let cachedCourses = [];
+
+// =====================================================================
+// INIT
+// =====================================================================
+document.addEventListener('DOMContentLoaded', async function() {
+  if (typeof emailjs !== 'undefined') {
+    try {
+      emailjs.init(EMAILJS_PUBLIC_KEY);
+      console.log('✅ EmailJS initialized');
+    } catch(e) { console.error('EmailJS init failed:', e); }
+  }
+  console.log('✅ Supabase initialized');
+  await loadCourses();
+  await loadUsersCache();
+  await loadLoginHistoryCache();
+  restoreSession();
+  updateAdminTab();
+  updateNavActions();
+});
+
+// =====================================================================
+// HELPERS
+// =====================================================================
+function escapeHtml(str) {
+  if (!str && str !== 0) return '';
+  return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+function formatDateTime(dateInput) {
+  if (!dateInput) return 'Never';
+  try {
+    const d = new Date(dateInput);
+    if (isNaN(d.getTime())) return 'Invalid';
+    return d.toLocaleString('en-ZA', { year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+  } catch { return 'Invalid'; }
+}
+function hashPassword(password) {
+  let hash = 0;
+  const combined = 'SA_YOUTH_SALT_2026' + password;
+  for (let i = 0; i < combined.length; i++) {
+    hash = ((hash << 5) - hash) + combined.charCodeAt(i);
+    hash |= 0;
+  }
+  return 'HASHED_' + Math.abs(hash).toString(36) + '_' + combined.length;
+}
+function verifyPassword(password, hash) { return hashPassword(password) === hash; }
+function generateSessionId() { return 'SESS-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9); }
+function detectDevice() {
+  const ua = navigator.userAgent;
+  let deviceType = 'Desktop', os = 'Unknown', browser = 'Unknown';
+  if (/iPad|Tablet/i.test(ua)) deviceType = 'Tablet';
+  else if (/iPhone/i.test(ua)) deviceType = 'iPhone';
+  else if (/Android/i.test(ua)) deviceType = 'Android';
+  else if (/Mobile/i.test(ua)) deviceType = 'Mobile';
+  if (/Windows NT 10/i.test(ua)) os = 'Windows 10/11';
+  else if (/Windows/i.test(ua)) os = 'Windows';
+  else if (/Mac OS X/i.test(ua)) os = 'macOS';
+  else if (/Android/i.test(ua)) os = 'Android';
+  else if (/iPhone|iPad|iPod/i.test(ua)) os = 'iOS';
+  else if (/Linux/i.test(ua)) os = 'Linux';
+  if (/Edg\//i.test(ua)) browser = 'Microsoft Edge';
+  else if (/Chrome/i.test(ua) && !/Edg/i.test(ua)) browser = 'Google Chrome';
+  else if (/Firefox/i.test(ua)) browser = 'Mozilla Firefox';
+  else if (/Safari/i.test(ua) && !/Chrome/i.test(ua)) browser = 'Safari';
+  else if (/Opera|OPR/i.test(ua)) browser = 'Opera';
+  return { deviceType, os, browser, userAgent: ua, ipAddress: 'Client: ' + Math.floor(Math.random() * 255) };
+}
+function showToast(message, type = 'success') {
+  const toast = document.getElementById('toast');
+  if (!toast) return;
+  toast.className = 'toast ' + type;
+  const icon = type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle';
+  toast.innerHTML = '<i class="fas ' + icon + '"></i><span>' + escapeHtml(message) + '</span>';
+  toast.classList.add('show');
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => toast.classList.remove('show'), 4500);
+}
+
+// =====================================================================
+// SESSION
+// =====================================================================
+function saveSession(user) {
+  if (user) {
+    try { localStorage.setItem('sa_youth_session', JSON.stringify({ userId: user.id, savedAt: Date.now() })); } catch(e) {}
+  }
+}
+function clearSession() {
+  try { localStorage.removeItem('sa_youth_session'); } catch(e) {}
+}
+function restoreSession() {
+  try {
+    const raw = localStorage.getItem('sa_youth_session');
+    if (!raw) return;
+    const session = JSON.parse(raw);
+    if (Date.now() - session.savedAt > 30 * 24 * 60 * 60 * 1000) { clearSession(); return; }
+    const user = cachedUsers.find(u => u.id === session.userId);
+    if (user && user.status === 'ACTIVE') {
+      isUserLoggedIn = true;
+      currentUser = user;
+      updateNavActions();
+      console.log('✅ Session restored for', user.email);
+    }
+  } catch(e) {}
+}
+
+// =====================================================================
+// SUPABASE — USERS
+// =====================================================================
+async function loadUsersCache() {
+  try {
+    const { data, error } = await supabaseClient.from('users').select('*').order('registered_at', { ascending: false });
+    if (error) throw error;
+    cachedUsers = data || [];
+    console.log('✅ Loaded', cachedUsers.length, 'users');
+  } catch (err) {
+    console.error('❌ Failed to load users:', err);
+    cachedUsers = [];
+  }
+}
+async function findUserByEmail(email) {
+  try {
+    const { data, error } = await supabaseClient.from('users').select('*').eq('email', email.toLowerCase().trim()).maybeSingle();
+    if (error) throw error;
+    return data;
+  } catch (err) { console.error('findUserByEmail error:', err); return null; }
+}
+async function createUserInDb(firstName, surname, email, phone, password) {
+  const payload = {
+    first_name: firstName, surname: surname,
+    email: email.toLowerCase().trim(), phone: phone,
+    password_hash: hashPassword(password),
+    status: 'PENDING', role: 'user', total_logins: 0
+  };
+  const { data, error } = await supabaseClient.from('users').insert(payload).select().single();
+  if (error) throw error;
+  await loadUsersCache();
+  return data;
+}
+async function updateUserStatus(userId, newStatus, previousStatus, reason) {
+  const updates = { status: newStatus };
+  if (newStatus === 'ACTIVE' && previousStatus !== 'ACTIVE') {
+    updates.approved_at = new Date().toISOString();
+    updates.approved_by = currentAdmin ? currentAdmin.id : 'admin';
+  }
+  const { error } = await supabaseClient.from('users').update(updates).eq('id', userId);
+  if (error) throw error;
+  try {
+    await supabaseClient.from('account_status_history').insert({
+      user_id: userId, previous_status: previousStatus, new_status: newStatus,
+      changed_by: currentAdmin ? currentAdmin.id : 'system',
+      reason: reason || 'Status updated', ip_address: 'admin_portal'
+    });
+  } catch(e) { console.warn('status_history insert failed', e); }
+  await loadUsersCache();
+}
+
+// =====================================================================
+// SUPABASE — LOGIN HISTORY
+// =====================================================================
+async function loadLoginHistoryCache() {
+  try {
+    const { data, error } = await supabaseClient.from('login_history').select('*').order('login_timestamp', { ascending: false }).limit(500);
+    if (error) throw error;
+    cachedLoginHistory = data || [];
+    console.log('✅ Loaded', cachedLoginHistory.length, 'login records');
+  } catch (err) { console.error('❌ Load login history failed:', err); cachedLoginHistory = []; }
+}
+async function recordLoginInDb(userId, email, status, eventType) {
+  const device = detectDevice();
+  const now = new Date();
+  const payload = {
+    user_id: userId, email: email,
+    login_timestamp: now.toISOString(),
+    login_date: now.toLocaleDateString('en-ZA'),
+    login_time: now.toLocaleTimeString('en-ZA'),
+    ip_address: device.ipAddress, device_type: device.deviceType,
+    os: device.os, browser: device.browser, user_agent: device.userAgent,
+    status: status, event_type: eventType || 'LOGIN',
+    session_id: status === 'SUCCESS' ? generateSessionId() : null
+  };
+  try {
+    const { data, error } = await supabaseClient.from('login_history').insert(payload).select().single();
+    if (error) throw error;
+    console.log('📝', eventType || 'LOGIN', 'recorded for', email);
+    return data;
+  } catch (err) { console.error('recordLogin failed:', err); return null; }
+}
+
+// =====================================================================
+// SUPABASE — AUDIT LOG
+// =====================================================================
+async function recordAdminAction(action, targetUserId, details) {
+  try {
+    await supabaseClient.from('admin_audit_log').insert({
+      admin_id: currentAdmin ? currentAdmin.id : 'unknown',
+      action: action, target_user_id: targetUserId || null, details: details || ''
+    });
+  } catch (err) { console.warn('Audit log failed:', err); }
+}
+
+// =====================================================================
+// SUPABASE — COURSES
+// =====================================================================
+async function loadCourses() {
+  try {
+    const { data, error } = await supabaseClient.from('courses').select('*').order('created_at', { ascending: false });
+    if (error) throw error;
+    cachedCourses = data || [];
+    console.log('✅ Loaded', cachedCourses.length, 'courses');
+    renderCourseGrid();
+  } catch (err) { console.error('❌ Load courses failed:', err); cachedCourses = []; renderCourseGrid(); }
+}
+
+// =====================================================================
+// EMAIL — via EmailJS
+// =====================================================================
+async function sendApprovalEmail(user) {
+  if (typeof emailjs === 'undefined') return { success: false, error: 'EmailJS not loaded' };
+  const templateParams = {
+    to_name: (user.first_name || '') + ' ' + (user.surname || ''),
+    to_email: user.email,
+    first_name: user.first_name || '',
+    surname: user.surname || '',
+    email: user.email,
+    username: user.email,
+    password: '(Use the password you chose at registration)',
+    login_url: window.location.href.split('#')[0],
+    user_id: user.id,
+    status: (user.status || 'ACTIVE').toUpperCase(),
+    approved_by: currentAdmin ? currentAdmin.id : 'Administrator',
+    approved_at: new Date().toLocaleString('en-ZA')
+  };
+  try {
+    const response = await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams);
+    console.log('✅ Email sent to', user.email);
+    return { success: true, response };
+  } catch (error) {
+    console.error('❌ Email error:', error);
+    return { success: false, error: (error && (error.text || error.message)) || 'Unknown' };
+  }
+}
+
+// =====================================================================
+// REGISTRATION
+// =====================================================================
+async function handleRegistration(e) {
+  e.preventDefault();
+  const btn = document.getElementById('regSubmitBtn');
+  const firstName = document.getElementById('regName').value.trim();
+  const surname = document.getElementById('regSurname').value.trim();
+  const email = document.getElementById('regEmail').value.trim().toLowerCase();
+  const phone = document.getElementById('regPhone').value.trim();
+  const password = document.getElementById('regPassword').value;
+
+  if (!firstName || !surname || !email || !phone || !password) { showToast('Please complete all fields.', 'error'); return; }
+  if (password.length < 8) { showToast('Password must be 8+ characters.', 'error'); return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Creating...';
+
+  try {
+    const existing = await findUserByEmail(email);
+    if (existing) { showToast('Email already registered.', 'error'); btn.disabled = false; btn.innerHTML = '<i class="fas fa-user-plus"></i> Create Account'; return; }
+
+    const user = await createUserInDb(firstName, surname, email, phone, password);
+    console.log('✅ User created:', user.id);
+
+    await recordLoginInDb(user.id, email, 'SUCCESS', 'REGISTRATION');
+
+    try {
+      await supabaseClient.from('account_status_history').insert({
+        user_id: user.id, previous_status: 'NONE', new_status: 'PENDING',
+        changed_by: 'system', reason: 'User registered', ip_address: 'registration_form'
+      });
+    } catch(e) { console.warn('Status history failed', e); }
+
+    showToast('Registration submitted. Admin will review your account.', 'success');
+    document.getElementById('registrationForm').reset();
+
+    sendApprovalEmail({ ...user, status: 'PENDING' }).catch(e => console.warn('Pending email failed', e));
+
+    if (isAdminLoggedIn) { await loadUsersCache(); await loadLoginHistoryCache(); renderUserTable(); renderDashboard(); }
+  } catch (err) {
+    console.error('❌ Registration failed:', err);
+    showToast('Registration failed: ' + (err.message || 'Unknown'), 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-user-plus"></i> Create Account';
+  }
+}
+
+// =====================================================================
+// USER LOGIN
+// =====================================================================
+function openUserLogin() {
+  document.getElementById('userLoginOverlay').classList.add('active');
+  document.getElementById('userLoginError').classList.remove('show');
+  document.getElementById('userLoginEmail').value = '';
+  document.getElementById('userLoginPassword').value = '';
+}
+function closeUserLogin() { document.getElementById('userLoginOverlay').classList.remove('active'); }
+async function attemptUserLogin() {
+  const email = document.getElementById('userLoginEmail').value.trim().toLowerCase();
+  const password = document.getElementById('userLoginPassword').value;
+  const errEl = document.getElementById('userLoginError');
+  if (!email || !password) { errEl.textContent = 'Enter email and password.'; errEl.classList.add('show'); return; }
+
+  await loadUsersCache();
+  const user = await findUserByEmail(email);
+  if (!user) { await recordLoginInDb(null, email, 'FAILED'); errEl.textContent = 'No account found.'; errEl.classList.add('show'); return; }
+  if (!verifyPassword(password, user.password_hash)) { await recordLoginInDb(user.id, email, 'FAILED'); errEl.textContent = 'Incorrect password.'; errEl.classList.add('show'); return; }
+  if (user.status === 'PENDING') { await recordLoginInDb(user.id, email, 'FAILED'); errEl.textContent = 'Account pending admin approval.'; errEl.classList.add('show'); return; }
+  if (user.status === 'DEACTIVATED') { await recordLoginInDb(user.id, email, 'FAILED'); errEl.textContent = 'Account deactivated. Contact admin.'; errEl.classList.add('show'); return; }
+  if (user.status !== 'ACTIVE') { await recordLoginInDb(user.id, email, 'FAILED'); errEl.textContent = 'Account not active.'; errEl.classList.add('show'); return; }
+
+  await recordLoginInDb(user.id, email, 'SUCCESS', 'LOGIN');
+  try {
+    await supabaseClient.from('users').update({ last_login: new Date().toISOString(), total_logins: (user.total_logins || 0) + 1 }).eq('id', user.id);
+  } catch(e) { console.warn('Update login stats failed', e); }
+  await loadUsersCache();
+
+  isUserLoggedIn = true;
+  currentUser = cachedUsers.find(u => u.id === user.id) || user;
+  saveSession(currentUser);
+  closeUserLogin();
+  updateNavActions();
+  renderCourseGrid();
+  showToast('Welcome back, ' + currentUser.first_name + '!', 'success');
+}
+function logoutUser() {
+  isUserLoggedIn = false; currentUser = null; clearSession();
+  updateNavActions(); renderCourseGrid();
+  showToast('Logged out.', 'info');
+}
+function updateNavActions() {
+  const nav = document.getElementById('navActions');
+  if (!nav) return;
+  if (isUserLoggedIn && currentUser) {
+    nav.innerHTML = '<span class="user-badge"><i class="fas fa-user-circle"></i> ' + escapeHtml(currentUser.first_name) + ' ' + escapeHtml(currentUser.surname) + '</span><button class="btn btn-secondary" onclick="logoutUser()"><i class="fas fa-sign-out-alt"></i> Logout</button>';
+  } else {
+    nav.innerHTML = '<button class="btn btn-secondary" onclick="openUserLogin()"><i class="fas fa-sign-in-alt"></i> Login</button><a href="#register" class="btn btn-primary"><i class="fas fa-user-plus"></i> Register</a>';
+  }
+}
+
+// =====================================================================
+// COURSE GRID
+// =====================================================================
+function renderCourseGrid() {
+  const grid = document.getElementById('courseGrid');
+  if (!grid) return;
+  const subtitle = document.getElementById('coursesSubtitle');
+  if (!cachedCourses.length) {
+    grid.innerHTML = '<div class="empty-state"><i class="fas fa-book-open"></i><h3>No Courses Available Yet</h3><p>Courses will appear here once added by an admin.</p></div>';
+    return;
+  }
+  if (subtitle) subtitle.textContent = isUserLoggedIn ? 'You are logged in. Click any course to start.' : 'Register and get approved to access all courses.';
+  grid.innerHTML = cachedCourses.map(c => {
+    const img = c.image_url ? "background-image:url('" + escapeHtml(c.image_url) + "');" : '';
+    const icon = c.icon || 'fa-book';
+    const locked = !isUserLoggedIn ? '<span style="display:inline-block;background:var(--warning-bg);color:var(--warning);font-size:.7rem;font-weight:700;padding:4px 10px;border-radius:6px;margin-bottom:12px;"><i class="fas fa-lock"></i> Login Required</span>' : '';
+    return '<div class="course-card"><div class="course-image" style="' + img + '"><div class="course-icon-badge"><i class="fas ' + icon + '"></i></div></div><div class="course-content">' + locked + '<h3>' + escapeHtml(c.title) + '</h3><div class="course-meta"><span><i class="fas fa-tag"></i> ' + escapeHtml(c.category || 'General') + '</span><span><i class="far fa-clock"></i> ' + escapeHtml(c.duration || 'Self-paced') + '</span></div><p class="course-desc">' + escapeHtml(c.description || '') + '</p><button class="btn btn-primary btn-block" onclick="handleCourseClick(\'' + c.id + '\')">' + (isUserLoggedIn ? 'Start Learning' : 'Login to Access') + ' <i class="fas fa-arrow-right"></i></button></div></div>';
+  }).join('');
+}
+async function handleCourseClick(courseId) {
+  if (!isUserLoggedIn) { showToast('Please log in.', 'info'); openUserLogin(); return; }
+  await openCourse(courseId);
+}
+
+// =====================================================================
+// ADMIN LOGIN
+// =====================================================================
+function openAdminLogin() {
+  if (isAdminLoggedIn) { openAdminDashboard(); return; }
+  document.getElementById('adminLoginOverlay').classList.add('active');
+  document.getElementById('adminLoginError').classList.remove('show');
+  document.getElementById('adminUsername').value = '';
+  document.getElementById('adminPassword').value = '';
+}
+function closeAdminLogin() { document.getElementById('adminLoginOverlay').classList.remove('active'); }
+function attemptAdminLogin() {
+  const u = document.getElementById('adminUsername').value.trim();
+  const p = document.getElementById('adminPassword').value.trim();
+  if (u === ADMIN_CREDENTIALS.username && p === ADMIN_CREDENTIALS.password) {
+    isAdminLoggedIn = true;
+    currentAdmin = { id: 'ADMIN-001', username: u };
+    closeAdminLogin();
+    updateAdminTab();
+    recordAdminAction('ADMIN_LOGIN', null, 'Admin logged in');
+    showToast('Admin access granted.', 'success');
+    openAdminDashboard();
+  } else {
+    document.getElementById('adminLoginError').classList.add('show');
+    document.getElementById('adminPassword').value = '';
+  }
+}
+function updateAdminTab() {
+  const btn = document.getElementById('adminTabBtn');
+  const btnText = document.getElementById('adminTabBtnText');
+  const statusText = document.getElementById('adminTabStatusText');
+  if (!btn) return;
+  if (isAdminLoggedIn) {
+    btn.classList.add('logged-in');
+    btnText.textContent = 'Open Dashboard';
+    statusText.textContent = 'You are logged in as administrator.';
+  } else {
+    btn.classList.remove('logged-in');
+    btnText.textContent = 'Admin Login';
+    statusText.textContent = 'Staff members log in here to manage users, courses, and certificates.';
+  }
+}
+
+// =====================================================================
+// ADMIN DASHBOARD
+// =====================================================================
+async function openAdminDashboard() {
+  if (!isAdminLoggedIn) { openAdminLogin(); return; }
+  document.getElementById('adminDashboard').classList.add('active');
+  document.body.style.overflow = 'hidden';
+  await loadUsersCache();
+  await loadLoginHistoryCache();
+  renderDashboard(); renderUserTable(); renderLoginHistory();
+  populateAdminSelects(); populateLoginHistoryUserFilter(); refreshIssuedCerts();
+}
+function closeAdminDashboard() {
+  document.getElementById('adminDashboard').classList.remove('active');
+  document.body.style.overflow = '';
+}
+function switchAdminTab(tabBtn, tabId) {
+  const modal = document.getElementById('adminDashboard');
+  modal.querySelectorAll('.modal-tab').forEach(t => t.classList.remove('active'));
+  modal.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  tabBtn.classList.add('active');
+  document.getElementById(tabId).classList.add('active');
+  if (tabId === 'adm-dashboard') renderDashboard();
+  if (tabId === 'adm-users') renderUserTable();
+  if (tabId === 'adm-login-history') renderLoginHistory();
+  if (tabId === 'adm-certificates') refreshIssuedCerts();
+}
+function renderDashboard() {
+  const total = cachedUsers.length;
+  const pending = cachedUsers.filter(u => u.status === 'PENDING').length;
+  const active = cachedUsers.filter(u => u.status === 'ACTIVE').length;
+  const deactivated = cachedUsers.filter(u => u.status === 'DEACTIVATED').length;
+  const totalLogins = cachedLoginHistory.filter(l => l.status === 'SUCCESS').length;
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const weekStart = new Date(todayStart); weekStart.setDate(weekStart.getDate() - 7);
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const today = cachedLoginHistory.filter(l => l.status === 'SUCCESS' && new Date(l.login_timestamp) >= todayStart).length;
+  const week = cachedLoginHistory.filter(l => l.status === 'SUCCESS' && new Date(l.login_timestamp) >= weekStart).length;
+  const month = cachedLoginHistory.filter(l => l.status === 'SUCCESS' && new Date(l.login_timestamp) >= monthStart).length;
+
+  const el = document.getElementById('dashStats');
+  if (el) el.innerHTML =
+    '<div class="dash-stat"><div class="ds-number">' + total + '</div><div class="ds-label">Total</div></div>' +
+    '<div class="dash-stat"><div class="ds-number">' + pending + '</div><div class="ds-label">Pending</div></div>' +
+    '<div class="dash-stat"><div class="ds-number">' + active + '</div><div class="ds-label">Active</div></div>' +
+    '<div class="dash-stat"><div class="ds-number">' + deactivated + '</div><div class="ds-label">Deactivated</div></div>' +
+    '<div class="dash-stat"><div class="ds-number">' + totalLogins + '</div><div class="ds-label">Logins</div></div>' +
+    '<div class="dash-stat"><div class="ds-number">' + today + '</div><div class="ds-label">Today</div></div>' +
+    '<div class="dash-stat"><div class="ds-number">' + week + '</div><div class="ds-label">This Week</div></div>' +
+    '<div class="dash-stat"><div class="ds-number">' + month + '</div><div class="ds-label">This Month</div></div>';
+
+  const recent = cachedLoginHistory.filter(l => l.status === 'SUCCESS').slice(0, 5);
+  const recEl = document.getElementById('recentLogins');
+  if (recEl) {
+    if (!recent.length) recEl.innerHTML = '<p style="color:rgba(255,255,255,.4);font-size:.82rem;">No logins yet.</p>';
+    else recEl.innerHTML = recent.map(l => {
+      const u = cachedUsers.find(x => x.id === l.user_id);
+      const name = u ? u.first_name + ' ' + u.surname : l.email;
+      return '<div class="login-history-item"><div class="login-history-icon"><i class="fas fa-sign-in-alt"></i></div><div class="login-history-body"><h5>' + escapeHtml(name) + ' <span class="lh-status success">Success</span></h5><div class="lh-meta">' + (l.login_date || '') + ' at ' + (l.login_time || '') + ' · ' + escapeHtml(l.device_type || '') + ' · ' + escapeHtml(l.browser || '') + '</div></div></div>';
+    }).join('');
+  }
+}
+
+// =====================================================================
+// USER TABLE
+// =====================================================================
+function renderUserTable() {
+  const tbody = document.getElementById('userTableBody');
+  if (!tbody) return;
+  const search = (document.getElementById('userSearchInput')?.value || '').toLowerCase();
+  const statusFilter = document.getElementById('userStatusFilter')?.value || '';
+  let filtered = [...cachedUsers];
+  if (search) filtered = filtered.filter(u => (u.first_name + ' ' + u.surname).toLowerCase().includes(search) || u.email.toLowerCase().includes(search));
+  if (statusFilter) filtered = filtered.filter(u => u.status === statusFilter);
+
+  if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:rgba(255,255,255,.4);">No users.</td></tr>'; return; }
+
+  tbody.innerHTML = filtered.map(u => {
+    const reg = formatDateTime(u.registered_at);
+    const last = u.last_login ? formatDateTime(u.last_login) : 'Never';
+    const cls = (u.status || '').toLowerCase();
+    let actions = '';
+    if (u.status === 'PENDING') actions = '<button class="tbl-btn-approve" onclick="adminApproveUser(\'' + u.id + '\')"><i class="fas fa-check"></i> Approve</button><button class="tbl-btn-view" onclick="viewUserProfile(\'' + u.id + '\')"><i class="fas fa-eye"></i></button>';
+    else if (u.status === 'ACTIVE') actions = '<button class="tbl-btn-deactivate" onclick="adminDeactivateUser(\'' + u.id + '\')"><i class="fas fa-ban"></i> Deactivate</button><button class="tbl-btn-view" onclick="viewUserProfile(\'' + u.id + '\')"><i class="fas fa-eye"></i></button><button class="tbl-btn-view" onclick="viewUserLoginHistory(\'' + u.id + '\')"><i class="fas fa-history"></i></button>';
+    else if (u.status === 'DEACTIVATED') actions = '<button class="tbl-btn-reactivate" onclick="adminReactivateUser(\'' + u.id + '\')"><i class="fas fa-redo"></i> Reactivate</button><button class="tbl-btn-view" onclick="viewUserProfile(\'' + u.id + '\')"><i class="fas fa-eye"></i></button>';
+    return '<tr><td><strong style="color:white;">' + escapeHtml(u.first_name) + ' ' + escapeHtml(u.surname) + '</strong></td><td>' + escapeHtml(u.email) + '</td><td>' + escapeHtml(u.phone) + '</td><td>' + reg + '</td><td><span class="status-pill ' + cls + '">' + u.status + '</span></td><td>' + last + '</td><td>' + (u.total_logins || 0) + '</td><td><div class="table-actions">' + actions + '</div></td></tr>';
+  }).join('');
+}
+async function adminApproveUser(userId) {
+  const user = cachedUsers.find(u => u.id === userId);
+  if (!user) return;
+  showAdminStatus('Approving ' + user.first_name + '...', true);
+  try {
+    await updateUserStatus(userId, 'ACTIVE', user.status, 'Approved');
+    await recordAdminAction('USER_APPROVED', userId, 'Approved ' + user.email);
+    await recordLoginInDb(userId, user.email, 'SUCCESS', 'APPROVAL');
+    const updated = cachedUsers.find(u => u.id === userId);
+    const result = await sendApprovalEmail(updated);
+    if (result.success) { showAdminStatus('✅ Approved. Email sent.', true); showToast('Approved & email sent.', 'success'); }
+    else { showAdminStatus('✅ Approved, but email failed: ' + result.error, false); }
+  } catch (err) {
+    console.error('Approve error:', err);
+    showAdminStatus('❌ Approval failed: ' + err.message, false);
+  }
+  renderUserTable(); renderDashboard();
+}
+async function adminDeactivateUser(userId) {
+  const user = cachedUsers.find(u => u.id === userId);
+  if (!user || !confirm('Deactivate ' + user.first_name + '?')) return;
+  try {
+    await updateUserStatus(userId, 'DEACTIVATED', user.status, 'Deactivated');
+    await recordAdminAction('USER_DEACTIVATED', userId, 'Deactivated ' + user.email);
+    if (currentUser && currentUser.id === userId) { logoutUser(); }
+    showAdminStatus('User deactivated.', true);
+    renderUserTable(); renderDashboard();
+  } catch (err) { showAdminStatus('❌ Failed: ' + err.message, false); }
+}
+async function adminReactivateUser(userId) {
+  const user = cachedUsers.find(u => u.id === userId);
+  if (!user) return;
+  try {
+    await updateUserStatus(userId, 'ACTIVE', user.status, 'Reactivated');
+    await recordAdminAction('USER_REACTIVATED', userId, 'Reactivated ' + user.email);
+    showAdminStatus('User reactivated.', true);
+    renderUserTable(); renderDashboard();
+  } catch (err) { showAdminStatus('❌ Failed: ' + err.message, false); }
+}
+function showAdminStatus(msg, success) {
+  const status = document.getElementById('adminStatus');
+  if (!status) return;
+  status.textContent = msg;
+  status.className = 'admin-status ' + (success ? 'success' : 'error');
+  status.style.display = 'block';
+  clearTimeout(status._timer);
+  status._timer = setTimeout(() => status.style.display = 'none', 5000);
+}
+function showAdminStatus2(msg, success) {
+  const status = document.getElementById('adminStatus2');
+  if (!status) return;
+  status.textContent = msg;
+  status.className = 'admin-status ' + (success ? 'success' : 'error');
+  status.style.display = 'block';
+  clearTimeout(status._timer);
+  status._timer = setTimeout(() => status.style.display = 'none', 5000);
+}
+function showCertStatus(msg, success) {
+  const s = document.getElementById('adminCertStatus');
+  if (!s) return;
+  s.textContent = msg;
+  s.className = 'admin-status ' + (success ? 'success' : 'error');
+  s.style.display = 'block';
+  clearTimeout(s._timer);
+  s._timer = setTimeout(() => s.style.display = 'none', 5000);
+}
+
+// =====================================================================
+// USER PROFILE
+// =====================================================================
+async function viewUserProfile(userId) {
+  const user = cachedUsers.find(u => u.id === userId);
+  if (!user) return;
+  await recordAdminAction('PROFILE_VIEWED', userId, 'Viewed ' + user.email);
+  const { data: statusHistory } = await supabaseClient.from('account_status_history').select('*').eq('user_id', userId).order('changed_at', { ascending: false });
+  document.getElementById('userProfileContent').innerHTML =
+    '<div class="admin-panel-header"><i class="fas fa-user-circle"></i><h3>' + escapeHtml(user.first_name) + ' ' + escapeHtml(user.surname) + '</h3></div>' +
+    '<p>User ID: <strong style="color:var(--gold);font-family:monospace;">' + escapeHtml(user.id) + '</strong></p>' +
+    '<div class="profile-grid">' +
+    '<div class="profile-field"><div class="pf-label">Email</div><div class="pf-value">' + escapeHtml(user.email) + '</div></div>' +
+    '<div class="profile-field"><div class="pf-label">Phone</div><div class="pf-value">' + escapeHtml(user.phone) + '</div></div>' +
+    '<div class="profile-field"><div class="pf-label">Status</div><div class="pf-value"><span class="status-pill ' + (user.status || '').toLowerCase() + '">' + user.status + '</span></div></div>' +
+    '<div class="profile-field"><div class="pf-label">Registered</div><div class="pf-value">' + formatDateTime(user.registered_at) + '</div></div>' +
+    '<div class="profile-field"><div class="pf-label">Last Login</div><div class="pf-value">' + (user.last_login ? formatDateTime(user.last_login) : 'Never') + '</div></div>' +
+    '<div class="profile-field"><div class="pf-label">Total Logins</div><div class="pf-value">' + (user.total_logins || 0) + '</div></div>' +
+    '</div>' +
+    '<div style="margin-top:20px;"><h4 style="color:var(--gold);font-size:.95rem;margin-bottom:12px;">Status History</h4><div style="max-height:200px;overflow-y:auto;font-size:.82rem;">' +
+    ((statusHistory || []).map(sh => '<div style="background:rgba(255,255,255,.05);padding:10px;border-radius:8px;margin-bottom:8px;"><strong style="color:var(--gold);">' + sh.previous_status + ' → ' + sh.new_status + '</strong><div style="color:rgba(255,255,255,.6);font-size:.78rem;">' + formatDateTime(sh.changed_at) + '</div></div>').join('') || '<p style="color:rgba(255,255,255,.4);">No status changes.</p>') +
+    '</div></div>';
+  document.getElementById('userLoginHistoryContent').innerHTML = '';
+  document.getElementById('userProfileModal').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+function closeUserProfile() {
+  document.getElementById('userProfileModal').classList.remove('active');
+  document.body.style.overflow = '';
+}
+async function viewUserLoginHistory(userId) {
+  const user = cachedUsers.find(u => u.id === userId);
+  if (!user) return;
+  const { data: logins } = await supabaseClient.from('login_history').select('*').eq('user_id', userId).order('login_timestamp', { ascending: false });
+  const arr = logins || [];
+  document.getElementById('userProfileContent').innerHTML =
+    '<div class="admin-panel-header"><i class="fas fa-user-circle"></i><h3>' + escapeHtml(user.first_name) + ' ' + escapeHtml(user.surname) + '</h3></div>' +
+    '<p>User ID: <strong style="color:var(--gold);font-family:monospace;">' + escapeHtml(user.id) + '</strong></p>' +
+    '<div class="profile-grid"><div class="profile-field"><div class="pf-label">Email</div><div class="pf-value">' + escapeHtml(user.email) + '</div></div><div class="profile-field"><div class="pf-label">Total Events</div><div class="pf-value">' + arr.length + '</div></div></div>';
+  document.getElementById('userLoginHistoryContent').innerHTML =
+    '<h4 style="color:var(--gold);font-size:.95rem;margin-bottom:12px;">Login History</h4>' +
+    '<div class="login-history-list">' +
+    (arr.length ? arr.map(l => {
+      const et = l.event_type || 'LOGIN';
+      const icon = et === 'REGISTRATION' ? 'user-plus' : et === 'APPROVAL' ? 'check-circle' : (l.status === 'SUCCESS' ? 'sign-in-alt' : 'times-circle');
+      return '<div class="login-history-item"><div class="login-history-icon"><i class="fas fa-' + icon + '"></i></div><div class="login-history-body"><h5>' + (l.login_date || '') + ' at ' + (l.login_time || '') + ' <span class="lh-status ' + (l.status || 'success').toLowerCase() + '">' + et + '</span></h5><div class="lh-meta">' + escapeHtml(l.device_type || '') + ' · ' + escapeHtml(l.os || '') + ' · ' + escapeHtml(l.browser || '') + '</div></div></div>';
+    }).join('') : '<p style="color:rgba(255,255,255,.4);">No records.</p>') +
+    '</div>';
+  document.getElementById('userProfileModal').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+// =====================================================================
+// LOGIN HISTORY
+// =====================================================================
+function populateLoginHistoryUserFilter() {
+  const sel = document.getElementById('lhUserFilter');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">All Users</option>' + cachedUsers.map(u => '<option value="' + u.id + '">' + escapeHtml(u.first_name) + ' ' + escapeHtml(u.surname) + '</option>').join('');
+}
+function renderLoginHistory() {
+  const list = document.getElementById('loginHistoryList');
+  if (!list) return;
+  const search = (document.getElementById('lhSearchInput')?.value || '').toLowerCase();
+  const userFilter = document.getElementById('lhUserFilter')?.value || '';
+  const statusFilter = document.getElementById('lhStatusFilter')?.value || '';
+  let filtered = [...cachedLoginHistory];
+  if (search) filtered = filtered.filter(l => l.email.toLowerCase().includes(search));
+  if (userFilter) filtered = filtered.filter(l => l.user_id === userFilter);
+  if (statusFilter) {
+    if (statusFilter === 'REGISTRATION' || statusFilter === 'APPROVAL') filtered = filtered.filter(l => l.event_type === statusFilter);
+    else filtered = filtered.filter(l => l.status === statusFilter && (l.event_type === 'LOGIN' || !l.event_type));
+  }
+  if (!filtered.length) { list.innerHTML = '<p style="color:rgba(255,255,255,.4);text-align:center;padding:20px;">No records.</p>'; return; }
+  list.innerHTML = filtered.slice(0, 100).map(l => {
+    const u = cachedUsers.find(x => x.id === l.user_id);
+    const name = u ? u.first_name + ' ' + u.surname : l.email;
+    const et = l.event_type || 'LOGIN';
+    const icon = et === 'REGISTRATION' ? 'user-plus' : et === 'APPROVAL' ? 'check-circle' : (l.status === 'SUCCESS' ? 'sign-in-alt' : 'times-circle');
+    return '<div class="login-history-item"><div class="login-history-icon"><i class="fas fa-' + icon + '"></i></div><div class="login-history-body"><h5>' + escapeHtml(name) + ' <span class="lh-status ' + (l.status || 'success').toLowerCase() + '">' + et + ' · ' + l.status + '</span></h5><div class="lh-meta">' + (l.login_date || '') + ' at ' + (l.login_time || '') + ' · ' + escapeHtml(l.device_type || '') + ' · ' + escapeHtml(l.browser || '') + '</div></div></div>';
+  }).join('');
+}
+
+// =====================================================================
+// COURSE MODAL
+// =====================================================================
+async function openCourse(courseId) {
+  if (!isUserLoggedIn) { openUserLogin(); return; }
+  const course = cachedCourses.find(c => c.id === courseId);
+  if (!course) return;
+  currentCourseId = courseId; currentCourse = course; quizPassed = false;
+  document.getElementById('modalCourseTitle').textContent = course.title;
+  document.getElementById('quizResult').className = 'quiz-result';
+  document.getElementById('quizResult').innerHTML = '';
+  document.getElementById('quizForm').reset();
+  document.getElementById('facilitatorSuccess').style.display = 'none';
+  document.getElementById('facilitatorForm').reset();
+  document.getElementById('certificateWaiting').classList.remove('hidden');
+  document.getElementById('certificateReady').classList.add('hidden');
+  await renderAssignments(courseId);
+  await renderGuides(courseId);
+  await renderQuiz(courseId);
+  await updateCertificateView();
+  switchTab(document.querySelector('.modal-tab'), 'tab-assignments');
+  document.getElementById('courseModal').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+function closeCourse() {
+  document.getElementById('courseModal').classList.remove('active');
+  document.body.style.overflow = '';
+}
+document.getElementById('courseModal').addEventListener('click', function(e) { if (e.target === this) closeCourse(); });
+
+async function renderAssignments(courseId) {
+  const list = document.getElementById('assignmentList');
+  list.innerHTML = '<div class="empty-tab"><i class="fas fa-spinner fa-spin"></i></div>';
+  try {
+    const { data, error } = await supabaseClient.from('assignments').select('*').eq('course_id', courseId).order('created_at');
+    if (error) throw error;
+    if (!data || !data.length) { list.innerHTML = '<div class="empty-tab"><i class="fas fa-tasks"></i><p>No assignments yet.</p></div>'; return; }
+    list.innerHTML = data.map(a => '<div class="content-item"><div class="content-item-icon"><i class="fas fa-tasks"></i></div><div class="content-item-body"><h4>' + escapeHtml(a.title) + (a.pdf_data ? '<span class="pdf-tag">PDF</span>' : '') + '</h4><p>' + escapeHtml(a.description || '') + '</p></div>' + (a.pdf_data ? '<button class="btn btn-teal btn-sm" onclick="downloadStoredPdf(\'' + a.id + '\',\'assignments\')"><i class="fas fa-download"></i> Download</button>' : '') + '</div>').join('');
+  } catch (err) { list.innerHTML = '<div class="empty-tab"><p>Error loading.</p></div>'; }
+}
+async function renderGuides(courseId) {
+  const list = document.getElementById('guideList');
+  list.innerHTML = '<div class="empty-tab"><i class="fas fa-spinner fa-spin"></i></div>';
+  try {
+    const { data, error } = await supabaseClient.from('study_guides').select('*').eq('course_id', courseId).order('created_at');
+    if (error) throw error;
+    if (!data || !data.length) { list.innerHTML = '<div class="empty-tab"><i class="fas fa-book"></i><p>No study guides yet.</p></div>'; return; }
+    list.innerHTML = data.map(g => '<div class="content-item"><div class="content-item-icon" style="background:var(--teal);"><i class="fas fa-file-pdf"></i></div><div class="content-item-body"><h4>' + escapeHtml(g.title) + (g.pdf_data ? '<span class="pdf-tag">PDF</span>' : '') + '</h4><p>' + escapeHtml(g.description || '') + '</p></div>' + (g.pdf_data ? '<button class="btn btn-teal btn-sm" onclick="downloadStoredPdf(\'' + g.id + '\',\'study_guides\')"><i class="fas fa-download"></i> Download</button>' : '') + '</div>').join('');
+  } catch (err) { list.innerHTML = '<div class="empty-tab"><p>Error loading.</p></div>'; }
+}
+async function renderQuiz(courseId) {
+  const container = document.getElementById('quizQuestions');
+  const submitBtn = document.getElementById('quizForm').querySelector('button[type="submit"]');
+  container.innerHTML = '<div class="empty-tab"><i class="fas fa-spinner fa-spin"></i></div>';
+  try {
+    const { data, error } = await supabaseClient.from('quiz_questions').select('*').eq('course_id', courseId).order('created_at');
+    if (error) throw error;
+    if (!data || !data.length) { container.innerHTML = '<div class="empty-tab"><i class="fas fa-question-circle"></i><p>No quiz yet.</p></div>'; submitBtn.style.display = 'none'; return; }
+    currentQuizQuestions = data;
+    submitBtn.style.display = 'flex';
+    container.innerHTML = data.map((q, i) => {
+      const opts = Array.isArray(q.options) ? q.options : JSON.parse(q.options);
+      return '<div class="quiz-question"><h4>' + (i + 1) + '. ' + escapeHtml(q.question) + '</h4>' + opts.map((o, j) => '<label class="quiz-option" onclick="selectOption(this)"><input type="radio" name="q' + i + '" value="' + j + '"><span>' + escapeHtml(o) + '</span></label>').join('') + '</div>';
+    }).join('');
+  } catch (err) { container.innerHTML = '<div class="empty-tab"><p>Error loading.</p></div>'; submitBtn.style.display = 'none'; }
+}
+function switchTab(tabBtn, tabId) {
+  document.querySelectorAll('.modal-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  tabBtn.classList.add('active');
+  document.getElementById(tabId).classList.add('active');
+}
+function selectOption(label) {
+  const name = label.querySelector('input').name;
+  document.querySelectorAll('input[name="' + name + '"]').forEach(inp => inp.closest('.quiz-option').classList.remove('selected'));
+  label.classList.add('selected');
+}
+async function submitQuiz(e) {
+  e.preventDefault();
+  if (!currentCourse || !currentQuizQuestions.length) return;
+  const total = currentQuizQuestions.length;
+  let correct = 0;
+  currentQuizQuestions.forEach((q, i) => {
+    const sel = document.querySelector('input[name="q' + i + '"]:checked');
+    if (sel && parseInt(sel.value) === q.correct_index) correct++;
+  });
+  const pct = Math.round((correct / total) * 100);
+  const result = document.getElementById('quizResult');
+  if (pct >= 80) {
+    quizPassed = true;
+    result.className = 'quiz-result pass';
+    result.innerHTML = '<h3><i class="fas fa-check-circle"></i> Passed!</h3><p>You scored <strong>' + pct + '%</strong>. Admin will issue your certificate.</p><button class="btn btn-accent" onclick="switchTab(document.querySelectorAll(\'.modal-tab\')[4],\'tab-certificate\')"><i class="fas fa-certificate"></i> View Certificate</button>';
+  } else {
+    quizPassed = false;
+    result.className = 'quiz-result fail';
+    result.innerHTML = '<h3><i class="fas fa-times-circle"></i> Not Passed</h3><p>You scored <strong>' + pct + '%</strong>. Need 80%.</p><button class="btn btn-primary" onclick="retryQuiz()"><i class="fas fa-redo"></i> Retry</button>';
+  }
+  result.style.display = 'block';
+  await updateCertificateView();
+}
+function retryQuiz() {
+  document.getElementById('quizForm').reset();
+  document.querySelectorAll('.quiz-option').forEach(o => o.classList.remove('selected'));
+  document.getElementById('quizResult').className = 'quiz-result';
+  document.getElementById('quizResult').innerHTML = '';
+  document.getElementById('quizResult').style.display = 'none';
+  quizPassed = false;
+  updateCertificateView();
+}
+async function updateCertificateView() {
+  const waiting = document.getElementById('certificateWaiting');
+  const ready = document.getElementById('certificateReady');
+  const locked = document.getElementById('certLockedMsg');
+  if (!quizPassed) { waiting.classList.remove('hidden'); ready.classList.add('hidden'); locked.style.display = 'block'; return; }
+  try {
+    const { data } = await supabaseClient.from('certificates').select('*').eq('course_id', currentCourseId).eq('student_email', currentUser.email).maybeSingle();
+    if (data) { waiting.classList.add('hidden'); ready.classList.remove('hidden'); locked.style.display = 'none'; }
+    else { waiting.classList.remove('hidden'); ready.classList.add('hidden'); locked.style.display = 'none'; }
+  } catch (err) { console.error(err); }
+}
+async function downloadCertificate() {
+  if (!quizPassed) { showToast('Pass the quiz first.', 'error'); return; }
+  const { data } = await supabaseClient.from('certificates').select('*').eq('course_id', currentCourseId).eq('student_email', currentUser.email).maybeSingle();
+  if (!data || !data.pdf_data) { showToast('Certificate not issued yet.', 'error'); return; }
+  const link = document.createElement('a');
+  link.href = data.pdf_data;
+  link.download = (data.student_name || 'Student').replace(/\s+/g, '-') + '-Certificate.pdf';
+  document.body.appendChild(link); link.click(); document.body.removeChild(link);
+}
+async function downloadStoredPdf(recordId, table) {
+  const { data } = await supabaseClient.from(table).select('*').eq('id', recordId).maybeSingle();
+  if (!data || !data.pdf_data) { showToast('PDF not available.', 'error'); return; }
+  const link = document.createElement('a');
+  link.href = data.pdf_data;
+  link.download = (data.title || 'document').replace(/\s+/g, '-') + '.pdf';
+  document.body.appendChild(link); link.click(); document.body.removeChild(link);
+}
+function submitFacilitatorRequest(e) {
+  e.preventDefault();
+  const name = document.getElementById('facilitatorName').value.trim();
+  const email = document.getElementById('facilitatorEmail').value.trim();
+  if (!name || !email) { showToast('Fill all fields.', 'error'); return; }
+  document.getElementById('facilitatorSuccess').style.display = 'block';
+  document.getElementById('facilitatorForm').reset();
+  showToast('Request submitted.', 'success');
+}
+
+// =====================================================================
+// FILE UPLOAD
+// =====================================================================
+function readFileAsDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// =====================================================================
+// ADMIN — COURSE SELECTS
+// =====================================================================
+function populateAdminSelects() {
+  const opts = cachedCourses.length ? cachedCourses.map(c => '<option value="' + c.id + '">' + escapeHtml(c.title) + '</option>').join('') : '<option value="">No courses</option>';
+  ['adminAssignmentCourse','adminGuideCourse','adminCertCourse','adminQuizCourse'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = opts;
+  });
+}
+
+// =====================================================================
+// ADMIN — ADD COURSE
+// =====================================================================
+async function adminAddCourse() {
+  if (!isAdminLoggedIn) return;
+  const title = document.getElementById('adminCourseTitle').value.trim();
+  const desc = document.getElementById('adminCourseDesc').value.trim();
+  const duration = document.getElementById('adminCourseDuration').value.trim();
+  const category = document.getElementById('adminCourseCategory').value.trim();
+  const icon = document.getElementById('adminCourseIcon').value.trim() || 'fa-book';
+  if (!title || !desc) { showAdminStatus2('Title & description required.', false); return; }
+  try {
+    const { error } = await supabaseClient.from('courses').insert({ title, description: desc, duration, category, icon });
+    if (error) throw error;
+    await recordAdminAction('COURSE_ADDED', null, title);
+    showAdminStatus2('Course added.', true);
+    ['adminCourseTitle','adminCourseDesc','adminCourseDuration','adminCourseCategory','adminCourseIcon'].forEach(id => document.getElementById(id).value = '');
+    await loadCourses(); populateAdminSelects();
+    showToast('Course added.', 'success');
+  } catch (err) { showAdminStatus2('❌ ' + err.message, false); }
+}
+
+// =====================================================================
+// ADMIN — UPLOAD ASSIGNMENT
+// =====================================================================
+async function adminUploadAssignment() {
+  if (!isAdminLoggedIn) return;
+  const courseId = document.getElementById('adminAssignmentCourse').value;
+  const title = document.getElementById('adminAssignmentTitle').value.trim();
+  const desc = document.getElementById('adminAssignmentDesc').value.trim();
+  const fi = document.getElementById('adminAssignmentPdf');
+  if (!courseId || !title || !fi.files.length) { showAdminStatus2('Fill all fields.', false); return; }
+  const file = fi.files[0];
+  if (file.type !== 'application/pdf') { showAdminStatus2('PDF only.', false); return; }
+  if (file.size > 4 * 1024 * 1024) { showAdminStatus2('Max 4MB.', false); return; }
+  try {
+    showAdminStatus2('Uploading...', true);
+    const dataUrl = await readFileAsDataURL(file);
+    const { error } = await supabaseClient.from('assignments').insert({ course_id: courseId, title, description: desc, pdf_data: dataUrl });
+    if (error) throw error;
+    await recordAdminAction('ASSIGNMENT_UPLOADED', null, title);
+    showAdminStatus2('Assignment uploaded.', true);
+    ['adminAssignmentTitle','adminAssignmentDesc','adminAssignmentPdf'].forEach(id => document.getElementById(id).value = '');
+    if (currentCourseId === courseId) await renderAssignments(courseId);
+    showToast('Assignment uploaded.', 'success');
+  } catch (err) { showAdminStatus2('❌ ' + err.message, false); }
+}
+
+// =====================================================================
+// ADMIN — UPLOAD GUIDE
+// =====================================================================
+async function adminUploadGuide() {
+  if (!isAdminLoggedIn) return;
+  const courseId = document.getElementById('adminGuideCourse').value;
+  const title = document.getElementById('adminGuideTitle').value.trim();
+  const desc = document.getElementById('adminGuideDesc').value.trim();
+  const fi = document.getElementById('adminGuidePdf');
+  if (!courseId || !title || !fi.files.length) { showAdminStatus2('Fill all fields.', false); return; }
+  const file = fi.files[0];
+  if (file.type !== 'application/pdf') { showAdminStatus2('PDF only.', false); return; }
+  if (file.size > 4 * 1024 * 1024) { showAdminStatus2('Max 4MB.', false); return; }
+  try {
+    showAdminStatus2('Uploading...', true);
+    const dataUrl = await readFileAsDataURL(file);
+    const { error } = await supabaseClient.from('study_guides').insert({ course_id: courseId, title, description: desc, pdf_data: dataUrl });
+    if (error) throw error;
+    await recordAdminAction('GUIDE_UPLOADED', null, title);
+    showAdminStatus2('Guide uploaded.', true);
+    ['adminGuideTitle','adminGuideDesc','adminGuidePdf'].forEach(id => document.getElementById(id).value = '');
+    if (currentCourseId === courseId) await renderGuides(courseId);
+    showToast('Guide uploaded.', 'success');
+  } catch (err) { showAdminStatus2('❌ ' + err.message, false); }
+}
+
+// =====================================================================
+// ADMIN — ISSUE CERTIFICATE
+// =====================================================================
+async function adminIssueCertificate() {
+  if (!isAdminLoggedIn) return;
+  const courseId = document.getElementById('adminCertCourse').value;
+  const name = document.getElementById('adminCertStudentName').value.trim();
+  const email = document.getElementById('adminCertStudentEmail').value.trim();
+  const fi = document.getElementById('adminCertPdf');
+  if (!courseId || !name || !email || !fi.files.length) { showCertStatus('Fill all fields.', false); return; }
+  const file = fi.files[0];
+  if (file.type !== 'application/pdf') { showCertStatus('PDF only.', false); return; }
+  if (file.size > 4 * 1024 * 1024) { showCertStatus('Max 4MB.', false); return; }
+  try {
+    showCertStatus('Uploading...', true);
+    const dataUrl = await readFileAsDataURL(file);
+    const student = cachedUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
+    const { error } = await supabaseClient.from('certificates').insert({
+      user_id: student ? student.id : null,
+      course_id: courseId,
+      student_name: name,
+      student_email: email,
+      pdf_data: dataUrl,
+      issued_by: currentAdmin.id
+    });
+    if (error) throw error;
+    await recordAdminAction('CERTIFICATE_ISSUED', student ? student.id : null, name);
+    showCertStatus('Certificate issued.', true);
+    ['adminCertStudentName','adminCertStudentEmail','adminCertPdf'].forEach(id => document.getElementById(id).value = '');
+    refreshIssuedCerts();
+    if (isUserLoggedIn) await updateCertificateView();
+    showToast('Certificate issued.', 'success');
+  } catch (err) { showCertStatus('❌ ' + err.message, false); }
+}
+
+// =====================================================================
+// ADMIN — ADD QUIZ QUESTION
+// =====================================================================
+async function adminAddQuizQuestion() {
+  if (!isAdminLoggedIn) return;
+  const courseId = document.getElementById('adminQuizCourse').value;
+  const question = document.getElementById('adminQuizQuestion').value.trim();
+  const opts = ['adminQuizOpt0','adminQuizOpt1','adminQuizOpt2','adminQuizOpt3'].map(id => document.getElementById(id).value.trim());
+  const correct = parseInt(document.getElementById('adminQuizCorrect').value);
+  if (!courseId || !question || opts.some(o => !o) || isNaN(correct) || correct < 0 || correct > 3) { showAdminStatus2('Complete all fields (correct 0-3).', false); return; }
+  try {
+    const { error } = await supabaseClient.from('quiz_questions').insert({ course_id: courseId, question, options: opts, correct_index: correct });
+    if (error) throw error;
+    await recordAdminAction('QUIZ_QUESTION_ADDED', null, question.substring(0, 50));
+    showAdminStatus2('Question added.', true);
+    ['adminQuizQuestion','adminQuizOpt0','adminQuizOpt1','adminQuizOpt2','adminQuizOpt3','adminQuizCorrect'].forEach(id => document.getElementById(id).value = '');
+    if (currentCourseId === courseId) await renderQuiz(courseId);
+    showToast('Question added.', 'success');
+  } catch (err) { showAdminStatus2('❌ ' + err.message, false); }
+}
+
+// =====================================================================
+// ADMIN — CERTIFICATES LIST
+// =====================================================================
+async function refreshIssuedCerts() {
+  const list = document.getElementById('issuedCertList');
+  if (!list) return;
+  list.innerHTML = '<p style="color:rgba(255,255,255,.4);font-size:.8rem;">Loading...</p>';
+  try {
+    const { data, error } = await supabaseClient.from('certificates').select('*').order('issued_at', { ascending: false }).limit(50);
+    if (error) throw error;
+    if (!data || !data.length) { list.innerHTML = '<p style="color:rgba(255,255,255,.4);font-size:.8rem;">None yet.</p>'; return; }
+    list.innerHTML = data.map(c => '<div style="background:rgba(255,255,255,.06);border-radius:8px;padding:10px;margin-bottom:8px;font-size:.8rem;"><strong style="color:var(--gold);">' + escapeHtml(c.student_name) + '</strong><br><span style="color:rgba(255,255,255,.7);">' + escapeHtml(c.student_email) + '</span><br><span style="color:rgba(255,255,255,.4);font-size:.72rem;">' + formatDateTime(c.issued_at) + '</span></div>').join('');
+  } catch (err) { list.innerHTML = '<p style="color:rgba(255,255,255,.4);font-size:.8rem;">Error.</p>'; }
+}
+
+// =====================================================================
+// KEYBOARD
+// =====================================================================
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (document.getElementById('adminLoginOverlay').classList.contains('active')) closeAdminLogin();
+    else if (document.getElementById('userLoginOverlay').classList.contains('active')) closeUserLogin();
+    else if (document.getElementById('courseModal').classList.contains('active')) closeCourse();
+    else if (document.getElementById('userProfileModal').classList.contains('active')) closeUserProfile();
+    else if (document.getElementById('adminDashboard').classList.contains('active')) closeAdminDashboard();
+  }
+});
+
+// =====================================================================
+// SMOOTH SCROLL
+// =====================================================================
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', function(e) {
+    const href = this.getAttribute('href');
+    if (href === '#') return;
+    const target = document.querySelector(href);
+    if (target) { e.preventDefault(); target.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  });
+});
+
+console.log('✅ SA Youth Learning loaded — Supabase + EmailJS connected');
+</script>
+
+</body>
+</html>
